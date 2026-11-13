@@ -1,0 +1,1008 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="SwingX daily trading journal: add your trades, P&L and win rate calculate themselves, download the card as a high-resolution image.">
+<meta property="og:title" content="SwingX · The Daily 1% Club">
+<meta property="og:description" content="Make your daily trading journal card. P&L, win rate and averages calculate themselves.">
+<meta name="theme-color" content="#16295a">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2316295a'/%3E%3Cpath d='M12 48 L54 40 L52 52 L10 58Z' fill='%23f7d54a'/%3E%3Ctext x='32' y='42' font-family='Arial,sans-serif' font-weight='900' font-size='34' text-anchor='middle' fill='%23ffffff'%3ESX%3C/text%3E%3C/svg%3E">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,-apple-system,"Segoe UI",sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>SwingX</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Poppins:ital,wght@0,400;0,500;0,600;0,700;0,800;1,800&display=swap">
+<style>
+/* Layout: editor ledger on the left, the live journal card pinned on the right; stacks to one column on phones. */
+:root{
+  --bg:#edf0f6; --panel:#ffffff; --panel-2:#f6f8fc; --ink:#14213d; --muted:#5a6782; --line:#d8dfeb;
+  --accent:#16295a; --accent-ink:#ffffff; --hi:#f7d54a; --hi-ink:#16295a; --hi-soft:#fff5cc;
+  --gain:#1e7b35; --loss:#c1352b; --field:#ffffff; --focus:#2f6fe4;
+  --display:"Poppins","Segoe UI","Helvetica Neue",Arial,sans-serif;
+  --body:"Poppins","Segoe UI","Helvetica Neue",Arial,sans-serif;
+  --hand:"Kalam","Segoe Print","Comic Sans MS",cursive;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0d1321; --panel:#151e32; --panel-2:#1a253d; --ink:#e7ecf6; --muted:#9ba7c0; --line:#2a3653;
+    --accent:#f7d54a; --accent-ink:#16295a; --hi:#f7d54a; --hi-ink:#16295a; --hi-soft:#383113;
+    --gain:#5bd07a; --loss:#ff8073; --field:#0f172a; --focus:#8fb1ff; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0d1321; --panel:#151e32; --panel-2:#1a253d; --ink:#e7ecf6; --muted:#9ba7c0; --line:#2a3653;
+  --accent:#f7d54a; --accent-ink:#16295a; --hi:#f7d54a; --hi-ink:#16295a; --hi-soft:#383113;
+  --gain:#5bd07a; --loss:#ff8073; --field:#0f172a; --focus:#8fb1ff; color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font:14.5px/1.5 var(--body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+.wrap{max-width:1200px;margin:0 auto;display:grid;gap:20px}
+.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:6px 24px}
+.brand{font:800 clamp(24px,4vw,34px)/1.15 var(--display);letter-spacing:-.01em;margin:0;text-wrap:balance}
+.tagline{margin:2px 0 0;font:700 clamp(15px,2.2vw,18px)/1.3 var(--display);color:var(--ink)}
+.tagline mark{background:linear-gradient(178deg,transparent 14%,var(--hi) 14%,var(--hi) 86%,transparent 86%);color:var(--hi-ink);font-style:italic;padding:0 .14em;border-radius:3px}
+.lede{color:var(--muted);margin:2px 0 0;max-width:62ch}
+.grid{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(0,1fr);gap:24px;align-items:start}
+@media (max-width:900px){.grid{grid-template-columns:minmax(0,1fr)}}
+.editor{display:grid;gap:16px;min-width:0}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;display:grid;gap:12px;min-width:0}
+.panel h2{font:600 15.5px/1.3 var(--display);margin:0;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:4px 10px}
+.panel h2 small{font:500 12.5px var(--body);color:var(--muted)}
+.hint{margin:0;font-size:12.5px;color:var(--muted)}
+.row2{display:grid;grid-template-columns:minmax(0,190px) minmax(0,1fr);gap:12px}
+@media (max-width:480px){.row2{grid-template-columns:minmax(0,1fr)}}
+.fld{display:grid;gap:4px;font-size:12px;color:var(--muted);font-weight:500;min-width:0;letter-spacing:.01em}
+input[type=text],input[type=date]{font:inherit;font-size:15px;color:var(--ink);background:var(--field);border:1px solid var(--line);border-radius:9px;padding:8px 10px;width:100%;min-width:0;font-variant-numeric:tabular-nums}
+input::placeholder{color:var(--muted);opacity:.7}
+input:focus-visible,button:focus-visible,.sizes input:focus-visible+span{outline:2px solid var(--focus);outline-offset:1px}
+input.bad{border-color:var(--loss)}
+.sample{background:var(--hi-soft);border-radius:10px;padding:9px 12px;font-size:13px;display:flex;gap:10px;align-items:flex-start}
+.sample b{font-weight:600}
+.trades{display:grid;gap:10px}
+.trade{display:grid;grid-template-columns:22px minmax(0,1fr) auto 34px;gap:8px 10px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--panel-2)}
+.t-idx{grid-row:1 / span 2;align-self:start;margin-top:8px;font:600 13px var(--display);color:var(--muted);text-align:center}
+.t-stock{font-weight:600;text-transform:uppercase;letter-spacing:.03em}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--field)}
+.seg button{font:500 12.5px var(--body);border:0;background:transparent;color:var(--muted);padding:7px 11px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.t-del{width:34px;height:34px;border-radius:9px;border:1px solid transparent;background:transparent;color:var(--muted);cursor:pointer;display:grid;place-items:center;padding:0}
+.t-del:hover{border-color:var(--line);color:var(--loss)}
+.nums{grid-column:2 / -1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) minmax(124px,auto);gap:8px;align-items:end}
+.t-out{font:600 13.5px/1.3 var(--display);text-align:right;padding-bottom:9px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.t-out.gain{color:var(--gain)} .t-out.loss{color:var(--loss)}
+.t-out.idle{color:var(--muted);font:500 12px/1.3 var(--body);white-space:normal}
+@media (max-width:540px){.nums{grid-template-columns:repeat(3,minmax(0,1fr))}.t-out{grid-column:1 / -1;text-align:left;padding:0}}
+.btn{font:600 14px var(--display);border-radius:10px;padding:9px 16px;border:1px solid var(--line);background:var(--field);color:var(--ink);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+.btn.ghost{background:transparent}
+.btn:disabled{opacity:.55;cursor:default}
+.btn-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.cap{display:grid;gap:8px}
+.cap label.opt{display:flex;gap:10px;align-items:center;font-size:14px;cursor:pointer}
+.cap .manual{display:grid;grid-template-columns:auto minmax(0,220px);gap:10px;align-items:center;padding-left:28px}
+.cap .manual span{color:var(--muted);font-size:13px}
+.lines{display:grid;gap:8px}
+.lines .ln{display:grid;grid-template-columns:20px minmax(0,1fr);gap:8px;align-items:center}
+.lines .ln i{font-style:normal;color:var(--muted);text-align:center;font-weight:600}
+.notes input{font-family:var(--hand);font-size:17px;padding-block:6px}
+.powered .ln svg{width:18px;height:18px;justify-self:center;color:var(--gain)}
+.newday .nd-main{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center}
+.newday .nd-main>div{display:grid;gap:4px;min-width:0;flex:1 1 260px}
+.nd-confirm{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:10px 12px;border-radius:10px;background:var(--panel-2);border:1px solid var(--line)}
+.nd-confirm span{flex:1 1 200px;font-size:13.5px}
+.preview{position:sticky;top:max(16px,env(safe-area-inset-top,0px));display:grid;gap:12px;min-width:0}
+@media (max-width:900px){.preview{position:static}}
+.stage{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;display:grid;gap:14px;min-width:0}
+.canvas-box{display:grid;place-items:center;min-width:0}
+.stage canvas{display:block;max-width:100%;max-height:calc(100dvh - 210px);width:auto;height:auto;border-radius:4px;box-shadow:0 8px 28px rgba(20,33,61,.20)}
+@media (max-width:900px){.stage canvas{max-height:none}}
+.export{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;justify-content:space-between}
+.sizes{display:inline-flex;align-items:center;gap:8px;border:0;margin:0;padding:0;min-width:0;flex-wrap:wrap}
+.sizes legend{float:left;font-size:12.5px;color:var(--muted);font-weight:500;margin-right:4px}
+.sizes .opts{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--field)}
+.sizes label{position:relative;cursor:pointer}
+.sizes input{position:absolute;opacity:0;pointer-events:none}
+.sizes span{display:block;font:500 12.5px var(--body);padding:7px 11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.sizes input:checked+span{background:var(--accent);color:var(--accent-ink)}
+.status{font-size:13px;color:var(--muted);min-height:1.5em;margin:0}
+.sheet{position:fixed;inset:0;background:rgba(8,13,26,.62);display:grid;place-items:center;z-index:20;
+  padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.sheet-card{background:var(--panel);color:var(--ink);border-radius:16px;padding:16px;width:min(560px,100%);max-height:100%;overflow:auto;display:grid;gap:12px}
+.sheet-card h2{margin:0;font:600 17px var(--display)}
+.sheet-card p{margin:0;color:var(--muted);font-size:13.5px}
+.sheet-card img{width:100%;height:auto;border-radius:8px;border:1px solid var(--line)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media (prefers-reduced-motion:no-preference){.btn,.seg button,.t-del{transition:background-color .15s,color .15s,border-color .15s}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1 class="brand">SwingX</h1>
+      <p class="tagline">The Daily <mark>1%</mark> Club</p>
+      <p class="lede">Add today's trades. P&amp;L, win rate and averages calculate themselves, and the card downloads as a sharp PNG.</p>
+    </div>
+  </header>
+
+  <main class="grid">
+    <section class="editor" aria-label="Journal details">
+      <div class="panel">
+        <h2>The day</h2>
+        <div class="row2">
+          <label class="fld">Date<input type="date" id="f-date"></label>
+          <label class="fld">Subtitle<input type="text" id="f-subtitle" maxlength="40" placeholder="Trading Journal – Stocks"></label>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Trades <small id="trade-count"></small></h2>
+        <div class="sample" id="sample-note" hidden>
+          <span><b>Sample trades from your design.</b> Replace them with today's, or press New day below to start blank.</span>
+        </div>
+        <div class="trades" id="trades"></div>
+        <div class="btn-row">
+          <button type="button" class="btn" id="add-trade">
+            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            Add trade
+          </button>
+          <p class="hint" id="trade-hint">P&amp;L = (exit − entry) × qty. Short trades flip the sign.</p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Total capital deployed</h2>
+        <div class="cap">
+          <label class="opt"><input type="radio" name="cap" id="cap-auto" value="auto"> <span>Entry × qty, summed: <b id="cap-auto-val">₹0</b></span></label>
+          <label class="opt"><input type="radio" name="cap" id="cap-manual" value="manual"> <span>Enter an amount</span></label>
+          <div class="manual"><span>₹</span><input type="text" id="f-capital" inputmode="decimal" placeholder="5,10,000" aria-label="Capital deployed in rupees"></div>
+        </div>
+        <p class="hint">Total P&amp;L % on the card is total P&amp;L ÷ this amount.</p>
+      </div>
+
+      <div class="panel notes">
+        <h2>Today's notes <small>Optional. Leave blank to keep the space empty.</small></h2>
+        <div class="lines" id="notes"></div>
+      </div>
+
+      <div class="panel powered">
+        <h2>Powered by Human + AI <small>Optional. Kept when you start a new day.</small></h2>
+        <div class="lines" id="powered"></div>
+      </div>
+
+      <div class="panel newday">
+        <div class="nd-main">
+          <div>
+            <h2>Start a new day</h2>
+            <p class="hint">Clears trades and notes and sets today's date. Subtitle, capital setting and Human + AI lines stay.</p>
+          </div>
+          <button type="button" class="btn" id="nd-btn">New day</button>
+        </div>
+        <div class="nd-confirm" id="nd-confirm" hidden>
+          <span>Clear today's trades and notes?</span>
+          <button type="button" class="btn primary" id="nd-yes">Clear and start</button>
+          <button type="button" class="btn ghost" id="nd-no">Keep them</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="preview" aria-label="Card preview and download">
+      <div class="stage">
+        <div class="canvas-box"><canvas id="card" role="img" aria-label="Journal card preview"></canvas></div>
+        <div class="export">
+          <fieldset class="sizes">
+            <legend>Width</legend>
+            <span class="opts">
+              <label><input type="radio" name="size" id="size-1" value="1"><span>1080 px</span></label>
+              <label><input type="radio" name="size" id="size-2" value="2"><span>2160 px</span></label>
+              <label><input type="radio" name="size" id="size-3" value="3"><span>3240 px</span></label>
+            </span>
+          </fieldset>
+          <button type="button" class="btn primary" id="download">
+            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2v8m0 0L4.5 6.5M8 10l3.5-3.5M3 13h10" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Download PNG
+          </button>
+        </div>
+        <p class="status" id="status" role="status"></p>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="sheet" id="sheet" hidden role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+  <div class="sheet-card">
+    <h2 id="sheet-title">Save your card</h2>
+    <p>This view can't start a download. Long-press the image on a phone, or right-click it on a computer, and choose Save image.</p>
+    <img id="sheet-img" alt="">
+    <div class="btn-row"><button type="button" class="btn" id="sheet-close">Close</button></div>
+  </div>
+</div>
+
+<script>
+(() => {
+'use strict';
+
+/* ---------- state ---------- */
+const KEY = 'daily1pct.journal.v1';
+const MAX_TRADES = 12;
+const NOTE_LINES = 4, POWER_LINES = 3;
+
+function todayISO(){
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function sampleState(){
+  const t = (id, stock, entry, exit, qty) => ({id, stock, side:'L', entry, exit, qty});
+  return {
+    v:1, date: todayISO(), subtitle:'Trading Journal – Stocks', sample:true, nextId:6,
+    trades:[t(1,'RELIANCE','2486','2512','25'), t(2,'HDFCBANK','1612.50','1598','40'), t(3,'ICICIBANK','1328','1342.50','50'), t(4,'INFY','1586.20','1602','30'), t(5,'TCS','3711','3748','15')],
+    capitalMode:'auto', capitalManual:'',
+    notes: Array(NOTE_LINES).fill(''), powered: Array(POWER_LINES).fill(''),
+    scale: 2
+  };
+}
+function loadState(){
+  try {
+    const s = JSON.parse(localStorage.getItem(KEY));
+    if (s && s.v === 1 && Array.isArray(s.trades)) {
+      const base = sampleState();
+      const out = Object.assign(base, s);
+      out.notes = Array.from({length:NOTE_LINES}, (_, i) => (s.notes && s.notes[i]) || '');
+      out.powered = Array.from({length:POWER_LINES}, (_, i) => (s.powered && s.powered[i]) || '');
+      return out;
+    }
+  } catch (e) {}
+  return sampleState();
+}
+let state = loadState();
+function persist(){ try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+
+/* ---------- maths ---------- */
+function num(s){
+  if (s == null) return NaN;
+  const t = String(s).replace(/[,\s₹]/g, '');
+  if (t === '' || !/^-?\d*\.?\d+$/.test(t)) return NaN;
+  return Number(t);
+}
+function tradeResult(t){
+  const e = num(t.entry), x = num(t.exit), q = num(t.qty);
+  if (!(e > 0 && x > 0 && q > 0)) return null;
+  const dir = t.side === 'S' ? -1 : 1;
+  return {
+    stock: (t.stock || '').trim().toUpperCase() || '—', side: t.side === 'S' ? 'S' : 'L',
+    entry: e, exit: x, qty: q,
+    pnl: Math.round((x - e) * q * dir * 100) / 100,
+    pct: (x - e) / e * 100 * dir
+  };
+}
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+function dateLabel(iso){
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '');
+  if (!m) return '';
+  const y = +m[1], mo = +m[2], d = +m[3];
+  const dt = new Date(y, mo - 1, d);
+  return d + ' ' + MONTHS[mo - 1] + ' ' + y + ' (' + DAYS[dt.getDay()] + ')';
+}
+function compute(s){
+  const rows = s.trades.map(tradeResult).filter(Boolean);
+  const trades = rows.length, wins = rows.filter(r => r.pnl > 0).length;
+  const totalPnl = Math.round(rows.reduce((a, r) => a + r.pnl, 0) * 100) / 100;
+  const autoCap = Math.round(rows.reduce((a, r) => a + r.entry * r.qty, 0) * 100) / 100;
+  const manual = num(s.capitalManual);
+  const capital = s.capitalMode === 'manual' ? (manual > 0 ? manual : 0) : autoCap;
+  return {
+    rows, trades, wins, totalPnl, autoCap, capital,
+    winRate: trades ? wins / trades * 100 : 0,
+    avgRet: trades ? rows.reduce((a, r) => a + r.pct, 0) / trades : 0,
+    totalPct: capital > 0 ? totalPnl / capital * 100 : 0,
+    date: dateLabel(s.date), subtitle: (s.subtitle || '').trim(),
+    notes: s.notes.map(n => n.trim()).filter(Boolean),
+    powered: s.powered.map(n => n.trim()).filter(Boolean)
+  };
+}
+const fmt0 = new Intl.NumberFormat('en-IN', {maximumFractionDigits:0});
+const fmt2 = new Intl.NumberFormat('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2});
+function money(n){ const a = Math.abs(n); return Math.abs(a - Math.round(a)) < 0.005 ? fmt0.format(Math.round(a)) : fmt2.format(a); }
+function sign(n){ return n > 0.0049 ? '+' : n < -0.0049 ? '−' : ''; }
+function signedMoney(n, rupee){ return sign(n) + (rupee ? '₹' : '') + money(n); }
+function signedPct(n){ return sign(n) + Math.abs(n).toFixed(2) + '%'; }
+function price(n){ return fmt2.format(n); }
+
+/* ---------- canvas drawing ---------- */
+const DW = 1086; // design width; the card is laid out in these units and scaled on export
+const C = {
+  paper:'#f7f4ec', navy:'#16295a', ink:'#1b2232', sub:'#2a3142',
+  green:'#1e7b35', greenPill:'#2b8a3e', red:'#c1352b', redPill:'#c8443a',
+  hi:'#f7d54a', tape:'#efe1bd', check:'#2f8f46'
+};
+const SANS = '"Poppins","Segoe UI","Helvetica Neue",Arial,sans-serif';
+const HAND = '"Kalam","Segoe Print","Comic Sans MS",cursive';
+const F = (w, s, fam, it) => (it ? 'italic ' : '') + w + ' ' + s + 'px ' + (fam === 'hand' ? HAND : SANS);
+
+function rng(seed){ return function(){ seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function rr(ctx, x, y, w, h, r){
+  r = Math.min(r, w / 2, h / 2);
+  ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+}
+function shadow(ctx, k, blur, oy, color){ ctx.shadowColor = color; ctx.shadowBlur = blur * k; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = oy * k; }
+function noShadow(ctx){ ctx.shadowColor = 'rgba(0,0,0,0)'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0; }
+function fit(ctx, text, w, max, min, maxW, fam, it){
+  let s = max; ctx.font = F(w, s, fam, it);
+  while (s > min && ctx.measureText(text).width > maxW) { s -= 1; ctx.font = F(w, s, fam, it); }
+  return s;
+}
+function clip(ctx, text, maxW){
+  if (ctx.measureText(text).width <= maxW) return text;
+  let t = text; while (t.length > 1 && ctx.measureText(t + '…').width > maxW) t = t.slice(0, -1);
+  return t + '…';
+}
+function txt(ctx, s, x, y, align){ ctx.textAlign = align || 'left'; ctx.fillText(s, x, y); ctx.textAlign = 'left'; }
+function line(ctx, x1, y1, x2, y2){ ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); }
+function wrap(ctx, text, maxW){
+  const words = text.split(/\s+/).filter(Boolean); const out = []; let cur = '';
+  for (let w of words) {
+    while (ctx.measureText(w).width > maxW && w.length > 1) {
+      let i = w.length - 1; while (i > 1 && ctx.measureText(w.slice(0, i)).width > maxW) i--;
+      if (cur) { out.push(cur); cur = ''; }
+      out.push(w.slice(0, i)); w = w.slice(i);
+    }
+    const test = cur ? cur + ' ' + w : w;
+    if (ctx.measureText(test).width <= maxW) cur = test; else { if (cur) out.push(cur); cur = w; }
+  }
+  if (cur) out.push(cur);
+  return out;
+}
+
+let paperTile = null;
+function paperPattern(ctx){
+  if (!paperTile) {
+    const c = document.createElement('canvas'); c.width = c.height = 320; const x = c.getContext('2d'); const r = rng(7);
+    const id = x.createImageData(320, 320);
+    for (let i = 0; i < id.data.length; i += 4) {
+      const dark = r() < 0.55;
+      id.data[i] = dark ? 110 : 255; id.data[i+1] = dark ? 92 : 255; id.data[i+2] = dark ? 60 : 248; id.data[i+3] = Math.floor(r() * 16);
+    }
+    x.putImageData(id, 0, 0);
+    for (let i = 0; i < 90; i++) {
+      x.strokeStyle = 'rgba(125,104,70,' + (0.05 + r() * 0.07) + ')'; x.lineWidth = 0.7;
+      const px = r() * 320, py = r() * 320, a = r() * Math.PI * 2, len = 5 + r() * 16;
+      x.beginPath(); x.moveTo(px, py);
+      x.quadraticCurveTo(px + Math.cos(a) * len / 2 + (r() - .5) * 5, py + Math.sin(a) * len / 2 + (r() - .5) * 5, px + Math.cos(a) * len, py + Math.sin(a) * len);
+      x.stroke();
+    }
+    paperTile = c;
+  }
+  return ctx.createPattern(paperTile, 'repeat');
+}
+
+const IMG = {gateway: new Image(), howrah: new Image()};
+IMG.gateway.src = 'gateway.webp';
+IMG.howrah.src = 'howrah.webp';
+const imgReady = Promise.all(Object.values(IMG).map(im => im.decode ? im.decode().catch(() => {}) : new Promise(r => { im.onload = im.onerror = r; })));
+
+function layout(st){
+  const n = Math.max(1, st.rows.length);
+  const T = 551, HH = 58, RH = 53;
+  const tableBottom = T + HH + n * RH;
+  const S = tableBottom + 30;
+  const B = S + 120 + 42;
+  const notesH = 300;
+  return {T, HH, RH, n, S, B, notesH, H: B + notesH + 72};
+}
+
+function draw(ctx, st, L, k){
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+  ctx.scale(k, k);
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+  ctx.textBaseline = 'alphabetic';
+  const H = L.H;
+
+  ctx.fillStyle = C.paper; ctx.fillRect(0, 0, DW, H);
+  ctx.fillStyle = paperPattern(ctx); ctx.fillRect(0, 0, DW, H);
+  const vg = ctx.createRadialGradient(DW / 2, H / 2, Math.min(DW, H) * 0.35, DW / 2, H / 2, Math.max(DW, H) * 0.75);
+  vg.addColorStop(0, 'rgba(255,255,255,0)'); vg.addColorStop(1, 'rgba(125,100,55,0.12)');
+  ctx.fillStyle = vg; ctx.fillRect(0, 0, DW, H);
+
+  if (IMG.gateway.complete && IMG.gateway.naturalWidth) ctx.drawImage(IMG.gateway, 10, 112, 390, 238);
+  if (IMG.howrah.complete && IMG.howrah.naturalWidth) ctx.drawImage(IMG.howrah, 690, 112, 386, 238);
+
+  ctx.strokeStyle = C.navy; ctx.lineWidth = 2.6; ctx.strokeRect(9, 9, DW - 18, H - 18);
+
+  drawBrand(ctx);
+  drawTagline(ctx);
+  drawSubtitle(ctx, st.subtitle);
+  if (st.date) drawDate(ctx, st.date, k);
+  drawKpis(ctx, st, k);
+  drawTable(ctx, st, L, k);
+  drawStats(ctx, st, L, k);
+  const o1 = drawNotes(ctx, st, L, k);
+  const o2 = drawPowered(ctx, st, L, k);
+  ctx.restore();
+  return {notesOverflow: o1, poweredOverflow: o2};
+}
+
+// Header: SwingX wordmark, then the tagline with the highlighted 1%, then the journal label and date.
+function drawBrand(ctx){
+  const brand = 'SwingX';
+  const s = fit(ctx, brand, 800, 108, 60, 520);
+  const bw = ctx.measureText(brand).width, f = s / 96, gap = 20 * f;
+  const x = DW / 2 - (bw + gap + 50 * f) / 2, base = 120;
+  ctx.fillStyle = C.navy; ctx.fillText(brand, x, base);
+  drawTitleBars(ctx, x + bw + gap, base, f);
+}
+function drawTagline(ctx){
+  const parts = [['The Daily ', 700, false], ['1%', 800, true], [' Club', 700, false]];
+  const measure = s => parts.reduce((w, p) => { ctx.font = F(p[1], s, 0, p[2]); return w + ctx.measureText(p[0]).width; }, 0);
+  let size = 44;
+  while (size > 28 && measure(size) > 460) size -= 1;
+  const total = measure(size), cx = DW / 2, base = 188;
+  let x = cx - total / 2;
+  for (const [t, w, it] of parts) {
+    ctx.font = F(w, size, 0, it);
+    const tw = ctx.measureText(t).width;
+    if (it) drawHighlight(ctx, x, base, tw, size);
+    ctx.fillStyle = C.navy; ctx.fillText(t, x, base);
+    x += tw;
+  }
+  const ly = base - size * 0.34, Lw = 72, g = 22;
+  ctx.strokeStyle = C.navy; ctx.lineWidth = 2.6; ctx.lineCap = 'round';
+  line(ctx, cx - total / 2 - g - Lw, ly, cx - total / 2 - g, ly);
+  line(ctx, cx + total / 2 + g, ly, cx + total / 2 + g + Lw, ly);
+  ctx.lineCap = 'butt';
+}
+function drawHighlight(ctx, x, base, w, size){
+  const u = Math.max(size / 96, 0.6), top = base - size * 0.74, bot = base + size * 0.10, r = rng(11);
+  ctx.save(); ctx.fillStyle = C.hi; ctx.globalAlpha = 0.95;
+  ctx.beginPath(); ctx.moveTo(x - 2 * u, top + 6 * u);
+  for (let i = 1; i <= 8; i++) { const t = i / 8; ctx.lineTo(x - 2 * u + (w + 16 * u) * t, top + 6 * u - 7 * u * t + (r() - .5) * 3 * u); }
+  ctx.lineTo(x + w + 8 * u, bot - 6 * u);
+  for (let i = 8; i >= 0; i--) { const t = i / 8; ctx.lineTo(x - 16 * u + (w + 22 * u) * t, bot + 2 * u - 5 * u * t + (r() - .5) * 3 * u); }
+  ctx.closePath(); ctx.fill();
+  ctx.globalAlpha = 0.28; ctx.strokeStyle = '#e2ad1c'; ctx.lineWidth = 2 * u;
+  for (let i = 0; i < 4; i++) { const yy = top + 12 * u + i * (bot - top - 20 * u) / 3; line(ctx, x - 8 * u + (3 - i) * 2 * u, yy, x + w + 4 * u, yy - 3 * u); }
+  ctx.restore();
+}
+function drawTitleBars(ctx, x, base, s){
+  ctx.fillStyle = C.navy;
+  const bw = 10 * s, gap = 7 * s, hs = [18, 30, 44];
+  hs.forEach((h, i) => { rr(ctx, x + i * (bw + gap), base - 9 * s - h * s, bw, h * s, 1.5 * s); ctx.fill(); });
+  rr(ctx, x - 3 * s, base - 5 * s, 3 * bw + 2 * gap + 6 * s, 5 * s, 2 * s); ctx.fill();
+}
+function drawSubtitle(ctx, text){
+  if (!text) return;
+  const chars = [...text.toUpperCase()], sp = 3.4;
+  let size = 21;
+  const widthAt = () => { ctx.font = F(600, size); return chars.reduce((a, c) => a + ctx.measureText(c).width, 0) + sp * (chars.length - 1); };
+  while (size > 14 && widthAt() > 390) size -= 1;
+  let x = DW / 2 - widthAt() / 2;
+  ctx.fillStyle = '#3a4a70';
+  for (const c of chars) { ctx.fillText(c, x, 230); x += ctx.measureText(c).width + sp; }
+}
+function tornRect(ctx, x, y, w, h, seed){
+  const r = rng(seed), n = 9;
+  ctx.beginPath(); ctx.moveTo(x + 2, y);
+  ctx.lineTo(x + w - 2, y + 1);
+  for (let i = 1; i <= n; i++) ctx.lineTo(x + w + (i % 2 ? 3 : -2) + (r() - .5) * 4, y + h * i / n);
+  ctx.lineTo(x + 2, y + h - 1);
+  for (let i = n - 1; i >= 0; i--) ctx.lineTo(x + (i % 2 ? -3 : 2) + (r() - .5) * 4, y + h * i / n);
+  ctx.closePath();
+}
+function drawCalendar(ctx, x, y, s){
+  ctx.save(); ctx.strokeStyle = C.ink; ctx.fillStyle = C.ink; ctx.lineWidth = s * 0.08; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  rr(ctx, x, y + s * 0.12, s, s * 0.86, s * 0.14); ctx.stroke();
+  rr(ctx, x, y + s * 0.12, s, s * 0.26, s * 0.12); ctx.fill(); ctx.fillRect(x, y + s * 0.26, s, s * 0.12);
+  line(ctx, x + s * 0.28, y, x + s * 0.28, y + s * 0.2); line(ctx, x + s * 0.72, y, x + s * 0.72, y + s * 0.2);
+  for (let rI = 0; rI < 2; rI++) for (let c = 0; c < 3; c++) ctx.fillRect(x + s * (0.19 + c * 0.24), y + s * (0.52 + rI * 0.2), s * 0.14, s * 0.11);
+  ctx.restore();
+}
+function drawDate(ctx, label, k){
+  ctx.font = F(500, 29); const tw = ctx.measureText(label).width;
+  const iconS = 29, gap = 15, w = Math.max(296, 28 + iconS + gap + tw + 30), h = 58;
+  ctx.save(); ctx.translate(DW / 2, 278); ctx.rotate(-0.012);
+  shadow(ctx, k, 12, 4, 'rgba(70,50,20,0.22)');
+  tornRect(ctx, -w / 2, -h / 2, w, h, 21); ctx.fillStyle = C.tape; ctx.fill();
+  noShadow(ctx);
+  const g = ctx.createLinearGradient(0, -h / 2, 0, h / 2); g.addColorStop(0, 'rgba(255,255,255,0.30)'); g.addColorStop(1, 'rgba(150,110,50,0.10)');
+  tornRect(ctx, -w / 2, -h / 2, w, h, 21); ctx.fillStyle = g; ctx.fill();
+  const x0 = -(iconS + gap + tw) / 2;
+  drawCalendar(ctx, x0, -iconS / 2 - 1, iconS);
+  ctx.fillStyle = C.ink; ctx.font = F(500, 29); ctx.fillText(label, x0 + iconS + gap, 10);
+  ctx.restore();
+}
+function card(ctx, k, x, y, w, h, r, fill, stroke){
+  ctx.save(); shadow(ctx, k, 18, 6, 'rgba(35,45,75,0.10)'); rr(ctx, x, y, w, h, r); ctx.fillStyle = fill; ctx.fill(); ctx.restore();
+  if (stroke) { rr(ctx, x + .75, y + .75, w - 1.5, h - 1.5, r); ctx.strokeStyle = stroke; ctx.lineWidth = 1.5; ctx.stroke(); }
+}
+function grad(ctx, y0, y1, a, b){ const g = ctx.createLinearGradient(0, y0, 0, y1); g.addColorStop(0, a); g.addColorStop(1, b); return g; }
+
+function drawKpis(ctx, st, k){
+  const y = 362, h = 158;
+  const pos = st.totalPnl > 0.0049, neg = st.totalPnl < -0.0049;
+  card(ctx, k, 70, y, 532, h, 20,
+    grad(ctx, y, y + h, pos ? '#e7f3e0' : neg ? '#fbe6e2' : '#eff1f4', pos ? '#d6eacb' : neg ? '#f5d2cc' : '#e3e7ed'),
+    pos ? 'rgba(46,138,62,0.18)' : neg ? 'rgba(193,53,43,0.18)' : 'rgba(80,90,110,0.15)');
+  ctx.fillStyle = C.ink; fit(ctx, 'Total P&L (Today)', 600, 30, 22, 450); ctx.fillText('Total P&L (Today)', 112, y + 52);
+  const valTxt = st.trades ? signedMoney(st.totalPnl, true) : '₹0';
+  const pctTxt = st.trades && st.capital > 0 ? signedPct(st.totalPct) : '0.00%';
+  ctx.font = F(600, 28); const pw = ctx.measureText(pctTxt).width + 36;
+  const vs = fit(ctx, valTxt, 700, 82, 36, 532 - 84 - pw - 22);
+  const vw = ctx.measureText(valTxt).width, base = y + 128;
+  ctx.fillStyle = pos ? C.green : neg ? C.red : C.ink; ctx.fillText(valTxt, 112, base);
+  const ph = 50, px = 112 + vw + 22, py = base - vs * 0.36 - ph / 2;
+  rr(ctx, px, py, pw, ph, 25); ctx.fillStyle = pos ? C.greenPill : neg ? C.redPill : '#6b7385'; ctx.fill();
+  ctx.fillStyle = '#ffffff'; ctx.font = F(600, 28); ctx.fillText(pctTxt, px + 18, py + ph / 2 + 10);
+
+  ctx.fillStyle = 'rgba(70,80,105,0.55)'; ctx.fillRect(635, y + 14, 2, h - 28);
+
+  card(ctx, k, 668, y, 368, h, 20, grad(ctx, y, y + h, '#ebf1fa', '#dbe6f4'), 'rgba(60,95,160,0.16)');
+  ctx.fillStyle = C.ink; fit(ctx, 'Total Capital Deployed', 600, 30, 20, 300); ctx.fillText('Total Capital Deployed', 704, y + 52);
+  const capTxt = '₹' + money(st.capital || 0);
+  fit(ctx, capTxt, 700, 82, 34, 300); ctx.fillStyle = '#13213f'; ctx.fillText(capTxt, 704, base);
+}
+
+const COLS = [
+  {label:'#',         align:'center', at:82},
+  {label:'Stock',     align:'left',   at:132},
+  {label:'Entry (₹)', align:'right',  at:462},
+  {label:'Exit (₹)',  align:'right',  at:616},
+  {label:'Qty',       align:'right',  at:702},
+  {label:'P&L (₹)',   align:'right',  at:866},
+  {label:'P&L %',     align:'right',  at:1018}
+];
+function drawTable(ctx, st, L, k){
+  const x = 46, w = 996, y = L.T, hh = L.HH, rh = L.RH, h = hh + L.n * rh, tint0 = 730;
+  ctx.save(); shadow(ctx, k, 22, 7, 'rgba(30,40,70,0.13)'); rr(ctx, x, y, w, h, 16); ctx.fillStyle = '#fffdf8'; ctx.fill(); ctx.restore();
+  ctx.save(); rr(ctx, x, y, w, h, 16); ctx.clip();
+  ctx.fillStyle = grad(ctx, y, y + hh, '#1e3c74', '#142a56'); ctx.fillRect(x, y, w, hh);
+  ctx.fillStyle = '#ffffff'; ctx.font = F(600, 25);
+  for (const c of COLS) txt(ctx, c.label, c.at, y + hh / 2 + 9, c.align);
+  if (!st.rows.length) {
+    const ry = y + hh; ctx.fillStyle = '#fffdf8'; ctx.fillRect(x, ry, w, rh);
+    ctx.fillStyle = '#8a8f9c'; ctx.font = F(500, 24); txt(ctx, 'No trades yet', DW / 2, ry + rh / 2 + 8, 'center');
+  }
+  st.rows.forEach((r, i) => {
+    const ry = y + hh + i * rh, cy = ry + rh / 2 + 9;
+    ctx.fillStyle = i % 2 ? '#f6f2e9' : '#fffdf8'; ctx.fillRect(x, ry, w, rh);
+    const up = r.pnl > 0, dn = r.pnl < 0;
+    ctx.fillStyle = up ? (i % 2 ? '#d9ecd1' : '#e3f1dc') : dn ? (i % 2 ? '#f6d3ce' : '#fadcd8') : '#eeece5';
+    ctx.fillRect(tint0, ry, x + w - tint0, rh);
+    if (i > 0) { ctx.fillStyle = 'rgba(120,110,85,0.16)'; ctx.fillRect(x, ry, w, 1.2); }
+    ctx.fillStyle = C.ink; ctx.font = F(500, 25); txt(ctx, String(i + 1), 82, cy, 'center');
+    // stock name, with a SHORT tag for short trades
+    let maxName = 188, tagW = 0;
+    if (r.side === 'S') { ctx.font = F(600, 13); tagW = ctx.measureText('SHORT').width + 14; maxName -= tagW + 8; }
+    const ns = fit(ctx, r.stock, 700, 26, 19, maxName);
+    const name = clip(ctx, r.stock, maxName);
+    ctx.fillStyle = '#121a2b'; ctx.fillText(name, 132, cy);
+    if (tagW) {
+      const nw = ctx.measureText(name).width, tx = 132 + nw + 8, ty = cy - ns * 0.36 - 11;
+      rr(ctx, tx, ty, tagW, 22, 6); ctx.fillStyle = '#fbe7d6'; ctx.fill();
+      ctx.fillStyle = '#a4501a'; ctx.font = F(600, 13); ctx.fillText('SHORT', tx + 7, ty + 15.5);
+    }
+    ctx.fillStyle = C.ink;
+    fit(ctx, price(r.entry), 400, 26, 18, 140); txt(ctx, price(r.entry), 462, cy, 'right');
+    fit(ctx, price(r.exit), 400, 26, 18, 140); txt(ctx, price(r.exit), 616, cy, 'right');
+    const q = fmt0.format(r.qty) === String(r.qty) || Number.isInteger(r.qty) ? fmt0.format(r.qty) : String(r.qty);
+    fit(ctx, q, 400, 26, 18, 76); txt(ctx, q, 702, cy, 'right');
+    ctx.fillStyle = up ? C.green : dn ? C.red : C.ink;
+    const pTxt = signedMoney(r.pnl, false);
+    fit(ctx, pTxt, 700, 27, 18, 124); txt(ctx, pTxt, 866, cy, 'right');
+    const cTxt = signedPct(r.pct);
+    fit(ctx, cTxt, 700, 27, 18, 130); txt(ctx, cTxt, 1018, cy, 'right');
+  });
+  ctx.restore();
+}
+
+function goldGrad(ctx, y0, y1){ const g = ctx.createLinearGradient(0, y0, 0, y1); g.addColorStop(0, '#f8da7c'); g.addColorStop(0.5, '#e2aa3b'); g.addColorStop(1, '#b67e17'); return g; }
+function icon(ctx, x, y, s, box, fn){ ctx.save(); ctx.translate(x, y); ctx.scale(s / box, s / box); fn(); ctx.restore(); }
+function iconBars(ctx, x, y, s){ icon(ctx, x, y, s, 60, () => {
+  const hs = [16, 25, 35, 46];
+  hs.forEach((h, i) => { rr(ctx, 6 + i * 13, 52 - h, 10, h, 1.5); ctx.fillStyle = goldGrad(ctx, 52 - h, 52); ctx.fill(); ctx.strokeStyle = '#9b6a12'; ctx.lineWidth = 1; ctx.stroke(); });
+}); }
+function iconTrophy(ctx, x, y, s){ icon(ctx, x, y, s, 60, () => {
+  const g = goldGrad(ctx, 6, 56);
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = g; ctx.lineWidth = 4.2;
+  ctx.beginPath(); ctx.moveTo(17, 13); ctx.lineTo(9, 13); ctx.bezierCurveTo(8, 25, 13, 31, 21, 32); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(43, 13); ctx.lineTo(51, 13); ctx.bezierCurveTo(52, 25, 47, 31, 39, 32); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(15, 8); ctx.lineTo(45, 8); ctx.lineTo(45, 20); ctx.bezierCurveTo(45, 31, 38, 38, 30, 38); ctx.bezierCurveTo(22, 38, 15, 31, 15, 20); ctx.closePath();
+  ctx.fillStyle = g; ctx.fill(); ctx.strokeStyle = '#9b6a12'; ctx.lineWidth = 1.4; ctx.stroke();
+  rr(ctx, 13, 5, 34, 5, 2); ctx.fillStyle = g; ctx.fill(); ctx.stroke();
+  ctx.fillStyle = 'rgba(255,255,255,0.45)'; ctx.beginPath(); ctx.ellipse(23, 20, 3, 8, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = g; ctx.fillRect(27, 37, 6, 8);
+  rr(ctx, 20, 44, 20, 5, 2); ctx.fill(); ctx.stroke();
+  rr(ctx, 15, 49, 30, 7, 2); ctx.fill(); ctx.stroke();
+}); }
+function iconTarget(ctx, x, y, s){ icon(ctx, x, y, s, 60, () => {
+  const cx = 27, cy = 33, g = goldGrad(ctx, 10, 56);
+  ctx.strokeStyle = g; ctx.lineWidth = 5;
+  ctx.beginPath(); ctx.arc(cx, cy, 21, 0, Math.PI * 2); ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx, cy, 12, 0, Math.PI * 2); ctx.stroke();
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, 5, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = '#7d5612'; ctx.lineWidth = 3; ctx.lineCap = 'round'; line(ctx, cx, cy, 50, 10);
+  ctx.lineWidth = 2.6; line(ctx, 50, 10, 58, 9); line(ctx, 50, 10, 51, 2); line(ctx, 46, 14, 54, 13); line(ctx, 46, 14, 47, 6);
+}); }
+function coin(ctx, cx, cy, rx, ry, th){
+  ctx.beginPath(); ctx.moveTo(cx - rx, cy); ctx.lineTo(cx - rx, cy + th); ctx.ellipse(cx, cy + th, rx, ry, 0, Math.PI, 0, true); ctx.lineTo(cx + rx, cy); ctx.closePath();
+  ctx.fillStyle = '#c8901f'; ctx.fill(); ctx.strokeStyle = '#8a5d0f'; ctx.lineWidth = 1.2; ctx.stroke();
+  ctx.beginPath(); ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2); ctx.fillStyle = grad(ctx, cy - ry, cy + ry, '#fae08e', '#e2a93a'); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.ellipse(cx, cy, rx * 0.62, ry * 0.62, 0, 0, Math.PI * 2); ctx.strokeStyle = 'rgba(140,95,15,0.55)'; ctx.lineWidth = 1; ctx.stroke();
+}
+function iconCoins(ctx, x, y, s){ icon(ctx, x, y, s, 60, () => {
+  [47, 40, 33].forEach(cy => coin(ctx, 41, cy, 13, 4.8, 6));
+  [48, 41, 34, 27, 20].forEach(cy => coin(ctx, 20, cy, 14, 5.2, 6));
+}); }
+function iconBrain(ctx, x, y, s){ icon(ctx, x, y, s, 50, () => {
+  ctx.lineWidth = 2.6; ctx.strokeStyle = '#1c2f5a'; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  for (const m of [1, -1]) {
+    ctx.save(); if (m < 0) { ctx.translate(50, 0); ctx.scale(-1, 1); }
+    ctx.beginPath(); ctx.moveTo(25, 9); ctx.bezierCurveTo(22, 4, 15, 4, 13, 9); ctx.bezierCurveTo(8, 9, 5, 14, 7, 19);
+    ctx.bezierCurveTo(2, 22, 2, 30, 7, 33); ctx.bezierCurveTo(6, 39, 11, 43, 16, 42); ctx.bezierCurveTo(18, 46, 23, 47, 25, 44);
+    ctx.fillStyle = '#f6f9fd'; ctx.fill(); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(13, 9); ctx.bezierCurveTo(14, 13, 17, 15, 20, 15);
+    ctx.moveTo(7, 19); ctx.bezierCurveTo(10, 22, 14, 22, 16, 20);
+    ctx.moveTo(7, 33); ctx.bezierCurveTo(10, 30, 15, 30, 17, 33);
+    ctx.moveTo(16, 42); ctx.bezierCurveTo(16, 38, 19, 36, 22, 36);
+    ctx.moveTo(19, 26); ctx.bezierCurveTo(21, 24, 23, 25, 25, 26);
+    ctx.stroke(); ctx.restore();
+  }
+  line(ctx, 25, 9, 25, 44);
+}); }
+function iconCheck(ctx, x, y, s){ icon(ctx, x, y, s, 30, () => {
+  ctx.lineWidth = 2.6; ctx.strokeStyle = C.check; rr(ctx, 2, 4, 24, 24, 5); ctx.fillStyle = 'rgba(255,255,255,0.75)'; ctx.fill(); ctx.stroke();
+  ctx.lineWidth = 3.4; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.beginPath(); ctx.moveTo(8, 16); ctx.lineTo(13, 21); ctx.lineTo(27, 5); ctx.stroke();
+}); }
+function paperclip(ctx, x, y, s){
+  ctx.save(); ctx.translate(x, y); ctx.rotate(-0.36); ctx.scale(s / 76, s / 76);
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  const p = () => { ctx.beginPath(); ctx.moveTo(8, 26); ctx.lineTo(8, 60); ctx.arc(12, 60, 4, Math.PI, 0, true); ctx.lineTo(16, 14);
+    ctx.arc(10, 14, 6, 0, Math.PI, true); ctx.lineTo(4, 66); ctx.arc(12, 66, 8, Math.PI, 0, true); ctx.lineTo(20, 20); };
+  shadow(ctx, 1, 0, 0, 'rgba(0,0,0,0)');
+  p(); ctx.strokeStyle = '#7e8796'; ctx.lineWidth = 3.4; ctx.stroke();
+  p(); ctx.strokeStyle = 'rgba(235,240,246,0.85)'; ctx.lineWidth = 1; ctx.stroke();
+  ctx.restore();
+}
+
+function measureList(ctx, items, area, o, s){
+  ctx.font = F(o.weight, s, o.fam);
+  const indent = o.marker === 'check' ? s * 1.55 : s * 0.8, lh = s * o.lh, gap = s * 0.28;
+  const blocks = items.map(t => wrap(ctx, t, area.w - indent));
+  const total = blocks.reduce((a, b) => a + b.length * lh, 0) + gap * Math.max(0, blocks.length - 1);
+  return {s, indent, lh, gap, blocks, total};
+}
+function drawList(ctx, items, area, o){
+  if (!items.length) return false;
+  let m = null;
+  for (let s = o.max; s >= o.min; s--) { m = measureList(ctx, items, area, o, s); if (m.total <= area.h) break; }
+  ctx.save(); ctx.beginPath(); ctx.rect(area.x - 40, area.y - 12, area.w + 60, area.h + 16); ctx.clip();
+  ctx.font = F(o.weight, m.s, o.fam); ctx.fillStyle = o.color;
+  let yb = area.y + m.s * 0.98;
+  m.blocks.forEach(lines => {
+    if (o.marker === 'check') iconCheck(ctx, area.x, yb - m.s * 0.98, m.s * 1.1);
+    else { ctx.beginPath(); ctx.arc(area.x + m.s * 0.2, yb - m.s * 0.3, m.s * 0.12, 0, Math.PI * 2); ctx.fill(); }
+    ctx.font = F(o.weight, m.s, o.fam); ctx.fillStyle = o.color;
+    lines.forEach(ln => { ctx.fillText(ln, area.x + m.indent, yb); yb += m.lh; });
+    yb += m.gap;
+  });
+  ctx.restore();
+  return m.total > area.h;
+}
+
+function drawStats(ctx, st, L, k){
+  const x = 46, w = 996, y = L.S, h = 120;
+  ctx.save(); shadow(ctx, k, 16, 5, 'rgba(30,40,70,0.10)'); rr(ctx, x, y, w, h, 18); ctx.fillStyle = '#f9f7f2'; ctx.fill(); ctx.restore();
+  rr(ctx, x + .75, y + .75, w - 1.5, h - 1.5, 18); ctx.strokeStyle = 'rgba(120,110,85,0.20)'; ctx.lineWidth = 1.5; ctx.stroke();
+  const segs = [[46, 275], [275, 482], [482, 730], [730, 1042]];
+  const ar = st.avgRet;
+  const items = [
+    [iconBars, 'Trades', String(st.trades), C.ink],
+    [iconTrophy, 'Wins', String(st.wins), C.ink],
+    [iconTarget, 'Win Rate', st.trades ? st.winRate.toFixed(1) + '%' : '—', C.ink],
+    [iconCoins, 'Avg. Return/Trade', st.trades ? signedPct(ar) : '—', !st.trades ? C.ink : ar > 0.0049 ? C.green : ar < -0.0049 ? C.red : C.ink]
+  ];
+  items.forEach(([ic, label, value, col], i) => {
+    const [a, b] = segs[i], ix = a + (i === 3 ? 30 : 38);
+    ic(ctx, ix, y + 30, 60);
+    const tx = ix + 60 + 16, maxW = b - tx - 16;
+    ctx.fillStyle = C.sub; fit(ctx, label, 500, 24, 15, maxW); ctx.fillText(label, tx, y + 46);
+    ctx.fillStyle = col; fit(ctx, value, 700, 42, 22, maxW); ctx.fillText(value, tx, y + 94);
+    if (i > 0) { ctx.fillStyle = 'rgba(120,110,85,0.28)'; ctx.fillRect(a - 1, y + 22, 2, h - 44); }
+  });
+}
+
+function drawNotes(ctx, st, L, k){
+  const w = 448, h = L.notesH, cx = 52 + w / 2, cy = L.B + h / 2;
+  ctx.save(); ctx.translate(cx, cy); ctx.rotate(-0.022);
+  const X = -w / 2, Y = -h / 2;
+  shadow(ctx, k, 20, 9, 'rgba(85,62,18,0.25)');
+  const sheet = () => { ctx.beginPath(); ctx.moveTo(X, Y); ctx.lineTo(X + w, Y + 2); ctx.lineTo(X + w - 2, Y + h); ctx.quadraticCurveTo(X + w * 0.5, Y + h - 7, X + 2, Y + h + 2); ctx.closePath(); };
+  sheet(); const g = ctx.createLinearGradient(X, Y, X + w, Y + h); g.addColorStop(0, '#fcefb6'); g.addColorStop(1, '#f1d98a'); ctx.fillStyle = g; ctx.fill();
+  noShadow(ctx);
+  sheet(); ctx.globalAlpha = 0.6; ctx.fillStyle = paperPattern(ctx); ctx.fill(); ctx.globalAlpha = 1;
+  ctx.fillStyle = C.ink; ctx.font = F(700, 42, 'hand'); ctx.fillText("Today's Notes", X + 46, Y + 72);
+  const hw = ctx.measureText("Today's Notes").width;
+  ctx.strokeStyle = '#efb42a'; ctx.lineWidth = 6; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(X + 44, Y + 88); ctx.quadraticCurveTo(X + 46 + hw / 2, Y + 94, X + 52 + hw, Y + 84); ctx.stroke(); ctx.lineCap = 'butt';
+  const over = drawList(ctx, st.notes, {x: X + 50, y: Y + 112, w: w - 50 - 30, h: h - 112 - 24},
+    {fam:'hand', weight:400, max:32, min:20, lh:1.32, color:C.ink, marker:'dot'});
+  paperclip(ctx, X + 16, Y - 30, 82);
+  ctx.restore();
+  return over;
+}
+function drawPowered(ctx, st, L, k){
+  const x = 522, y = L.B + 10, w = 526, h = L.notesH - 20;
+  card(ctx, k, x, y, w, h, 24, grad(ctx, y, y + h, '#edf3fb', '#e0e9f6'), 'rgba(70,110,175,0.25)');
+  iconBrain(ctx, x + 30, y + 24, 52);
+  const lead = 'Powered by ', strong = 'Human + AI';
+  let s1 = 28, s2 = 34;
+  const widthAt = f => { ctx.font = F(500, s1 * f); const a = ctx.measureText(lead).width; ctx.font = F(700, s2 * f); return a + ctx.measureText(strong).width; };
+  let f = 1; while (f > 0.6 && widthAt(f) > w - 96 - 24) f -= 0.02;
+  ctx.font = F(500, s1 * f); ctx.fillStyle = C.ink; ctx.fillText(lead, x + 96, y + 62);
+  const lw = ctx.measureText(lead).width;
+  ctx.font = F(700, s2 * f); ctx.fillStyle = '#15284f'; ctx.fillText(strong, x + 96 + lw, y + 62);
+  ctx.fillStyle = 'rgba(70,110,175,0.25)'; ctx.fillRect(x + 22, y + 94, w - 44, 1.5);
+  const over = drawList(ctx, st.powered, {x: x + 30, y: y + 114, w: w - 30 - 26, h: h - 114 - 34},
+    {fam:0, weight:400, max:25, min:17, lh:1.42, color:C.ink, marker:'check'});
+  ctx.strokeStyle = '#2f5fc4'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(x + w * 0.44, y + h - 18); ctx.quadraticCurveTo(x + w * 0.7, y + h - 26, x + w - 40, y + h - 22); ctx.stroke(); ctx.lineCap = 'butt';
+  return over;
+}
+
+/* ---------- fonts ---------- */
+const FONT_FACES = ['400','500','600','700','800'].map(w => w + ' 32px Poppins').concat(['italic 800 32px Poppins', '400 32px Kalam', '700 32px Kalam']);
+const fontsReady = (document.fonts && document.fonts.load)
+  ? Promise.all(FONT_FACES.map(f => document.fonts.load(f, "Aa1%₹−'").catch(() => []))).catch(() => {})
+  : Promise.resolve();
+
+/* ---------- editor ---------- */
+const $ = id => document.getElementById(id);
+const tradesEl = $('trades');
+const XSVG = '<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+
+function renderTrades(){
+  tradesEl.textContent = '';
+  state.trades.forEach((t, i) => {
+    const el = document.createElement('div'); el.className = 'trade'; el.dataset.id = t.id;
+    el.innerHTML =
+      '<span class="t-idx" aria-hidden="true">' + (i + 1) + '</span>' +
+      '<input type="text" class="t-stock" id="stock-' + t.id + '" data-f="stock" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="24" placeholder="Stock symbol" aria-label="Trade ' + (i + 1) + ' stock">' +
+      '<div class="seg" role="group" aria-label="Trade ' + (i + 1) + ' direction"><button type="button" data-side="L">Long</button><button type="button" data-side="S">Short</button></div>' +
+      '<button type="button" class="t-del" aria-label="Remove trade ' + (i + 1) + '">' + XSVG + '</button>' +
+      '<div class="nums">' +
+        '<label class="fld">Entry ₹<input type="text" id="entry-' + t.id + '" data-f="entry" inputmode="decimal" autocomplete="off" placeholder="0.00"></label>' +
+        '<label class="fld">Exit ₹<input type="text" id="exit-' + t.id + '" data-f="exit" inputmode="decimal" autocomplete="off" placeholder="0.00"></label>' +
+        '<label class="fld">Qty<input type="text" id="qty-' + t.id + '" data-f="qty" inputmode="numeric" autocomplete="off" placeholder="0"></label>' +
+        '<output class="t-out" id="out-' + t.id + '" for="entry-' + t.id + ' exit-' + t.id + ' qty-' + t.id + '"></output>' +
+      '</div>';
+    el.querySelector('[data-f=stock]').value = t.stock;
+    el.querySelector('[data-f=entry]').value = t.entry;
+    el.querySelector('[data-f=exit]').value = t.exit;
+    el.querySelector('[data-f=qty]').value = t.qty;
+    tradesEl.appendChild(el);
+  });
+  $('add-trade').disabled = state.trades.length >= MAX_TRADES;
+  updateTradeUI();
+}
+function updateTradeUI(){
+  let done = 0;
+  state.trades.forEach(t => {
+    const el = tradesEl.querySelector('[data-id="' + t.id + '"]'); if (!el) return;
+    el.querySelectorAll('.seg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.side === t.side)));
+    ['entry', 'exit', 'qty'].forEach(f => { const v = t[f]; el.querySelector('[data-f=' + f + ']').classList.toggle('bad', v !== '' && !(num(v) > 0)); });
+    const out = el.querySelector('.t-out'), r = tradeResult(t);
+    if (r) { done++; out.className = 't-out ' + (r.pnl > 0 ? 'gain' : r.pnl < 0 ? 'loss' : ''); out.textContent = signedMoney(r.pnl, true) + ' · ' + signedPct(r.pct); }
+    else { out.className = 't-out idle'; out.textContent = 'Needs entry, exit and qty'; }
+  });
+  const n = state.trades.length;
+  $('trade-count').textContent = done === n ? n + (n === 1 ? ' trade' : ' trades') : done + ' of ' + n + ' complete · only complete trades go on the card';
+  $('sample-note').hidden = !state.sample;
+}
+tradesEl.addEventListener('input', e => {
+  const f = e.target.dataset.f; const row = e.target.closest('.trade'); if (!f || !row) return;
+  const t = state.trades.find(x => String(x.id) === row.dataset.id); if (!t) return;
+  t[f] = e.target.value; state.sample = false; changed(true);
+});
+tradesEl.addEventListener('click', e => {
+  const row = e.target.closest('.trade'); if (!row) return;
+  const idx = state.trades.findIndex(x => String(x.id) === row.dataset.id); if (idx < 0) return;
+  const sideBtn = e.target.closest('.seg button');
+  if (sideBtn) { state.trades[idx].side = sideBtn.dataset.side; state.sample = false; changed(true); return; }
+  if (e.target.closest('.t-del')) {
+    state.trades.splice(idx, 1); state.sample = false;
+    renderTrades(); changed(false);
+    const next = state.trades[Math.min(idx, state.trades.length - 1)];
+    (next ? $('stock-' + next.id) : $('add-trade')).focus();
+  }
+});
+tradesEl.addEventListener('keydown', e => {
+  if (e.key !== 'Enter' || !e.target.dataset.f) return;
+  const row = e.target.closest('.trade');
+  if (row && row === tradesEl.lastElementChild && state.trades.length < MAX_TRADES) { e.preventDefault(); addTrade(); }
+});
+function addTrade(){
+  if (state.trades.length >= MAX_TRADES) return;
+  const t = {id: state.nextId++, stock:'', side:'L', entry:'', exit:'', qty:''};
+  state.trades.push(t); renderTrades(); changed(false);
+  $('stock-' + t.id).focus();
+}
+$('add-trade').addEventListener('click', addTrade);
+
+function renderLines(){
+  const notes = $('notes'); notes.textContent = '';
+  state.notes.forEach((v, i) => {
+    const d = document.createElement('div'); d.className = 'ln';
+    d.innerHTML = '<i aria-hidden="true">•</i><input type="text" id="note-' + i + '" maxlength="90" placeholder="Note ' + (i + 1) + '" aria-label="Note ' + (i + 1) + '">';
+    d.querySelector('input').value = v; notes.appendChild(d);
+  });
+  const pw = $('powered'); pw.textContent = '';
+  state.powered.forEach((v, i) => {
+    const d = document.createElement('div'); d.className = 'ln';
+    d.innerHTML = '<svg viewBox="0 0 18 18" aria-hidden="true"><rect x="1.5" y="2.5" width="14" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M5 9.5l3 3 8-9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><input type="text" id="pow-' + i + '" maxlength="70" placeholder="Line ' + (i + 1) + '" aria-label="Human + AI line ' + (i + 1) + '">';
+    d.querySelector('input').value = v; pw.appendChild(d);
+  });
+}
+$('notes').addEventListener('input', e => { const i = +e.target.id.split('-')[1]; state.notes[i] = e.target.value; changed(false); });
+$('powered').addEventListener('input', e => { const i = +e.target.id.split('-')[1]; state.powered[i] = e.target.value; changed(false); });
+
+function syncFields(){
+  $('f-date').value = state.date;
+  $('f-subtitle').value = state.subtitle;
+  $('cap-auto').checked = state.capitalMode !== 'manual';
+  $('cap-manual').checked = state.capitalMode === 'manual';
+  $('f-capital').value = state.capitalManual;
+  $('f-capital').disabled = state.capitalMode !== 'manual';
+  $('size-' + state.scale).checked = true;
+}
+$('f-date').addEventListener('input', e => { state.date = e.target.value; changed(false); });
+$('f-subtitle').addEventListener('input', e => { state.subtitle = e.target.value; changed(false); });
+document.querySelectorAll('input[name=cap]').forEach(r => r.addEventListener('change', e => {
+  state.capitalMode = e.target.value; $('f-capital').disabled = state.capitalMode !== 'manual';
+  if (state.capitalMode === 'manual') $('f-capital').focus();
+  changed(false);
+}));
+$('f-capital').addEventListener('input', e => {
+  state.capitalManual = e.target.value;
+  e.target.classList.toggle('bad', e.target.value !== '' && !(num(e.target.value) > 0));
+  changed(false);
+});
+document.querySelectorAll('input[name=size]').forEach(r => r.addEventListener('change', e => { state.scale = +e.target.value; persist(); setStatus(''); }));
+
+$('nd-btn').addEventListener('click', () => { $('nd-confirm').hidden = false; $('nd-btn').hidden = true; $('nd-yes').focus(); });
+$('nd-no').addEventListener('click', () => { $('nd-confirm').hidden = true; $('nd-btn').hidden = false; $('nd-btn').focus(); });
+$('nd-yes').addEventListener('click', () => {
+  state.date = todayISO(); state.sample = false;
+  state.trades = [{id: state.nextId++, stock:'', side:'L', entry:'', exit:'', qty:''}];
+  state.notes = Array(NOTE_LINES).fill('');
+  $('nd-confirm').hidden = true; $('nd-btn').hidden = false;
+  syncFields(); renderTrades(); renderLines(); changed(false);
+  $('stock-' + state.trades[0].id).focus();
+  setStatus('New day started. Add your first trade.');
+});
+
+/* ---------- preview ---------- */
+const cv = $('card');
+let raf = 0;
+function changed(fromTrade){
+  if (fromTrade) updateTradeUI();
+  persist();
+  if (!raf) raf = requestAnimationFrame(() => { raf = 0; drawPreview(); });
+}
+function drawPreview(){
+  const st = compute(state), L = layout(st);
+  $('cap-auto-val').textContent = '₹' + money(st.autoCap);
+  const box = cv.parentElement.clientWidth || 500;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+  const k = box * dpr / DW;
+  const W = Math.round(DW * k), Hh = Math.round(L.H * k);
+  if (cv.width !== W) cv.width = W;
+  if (cv.height !== Hh) cv.height = Hh;
+  const res = draw(cv.getContext('2d'), st, L, k);
+  cv.setAttribute('aria-label', 'Journal card for ' + (st.date || 'today') + ': ' + st.trades + ' trades, total P&L ' + (st.trades ? signedMoney(st.totalPnl, true) : '₹0') + ', win rate ' + st.winRate.toFixed(1) + '%');
+  const warn = [];
+  if (res.notesOverflow) warn.push('notes');
+  if (res.poweredOverflow) warn.push('Human + AI lines');
+  if (warn.length) setStatus('Your ' + warn.join(' and ') + ' are too long to fit on the card. Shorten them a little.', true);
+  else if (statusIsWarn) setStatus('');
+}
+let statusIsWarn = false;
+function setStatus(msg, warn){ $('status').textContent = msg; statusIsWarn = !!warn; }
+
+if ('ResizeObserver' in window) new ResizeObserver(() => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; drawPreview(); }); }).observe(cv.parentElement);
+else window.addEventListener('resize', () => drawPreview());
+
+/* ---------- export ---------- */
+let dlPromise = null;
+function getDownloads(){
+  if (dlPromise) return dlPromise;
+  if (window.claude && typeof window.claude.use === 'function') { dlPromise = window.claude.use('downloads').catch(() => null); return dlPromise; }
+  return Promise.resolve(null);
+}
+window.addEventListener('load', () => { setTimeout(getDownloads, 0); });
+
+async function renderPng(){
+  await Promise.all([fontsReady, imgReady]);
+  const st = compute(state), L = layout(st);
+  let k = 1080 * state.scale / DW;
+  const maxPx = 16e6;
+  if (DW * k * L.H * k > maxPx) k *= Math.sqrt(maxPx / (DW * k * L.H * k));
+  const c = document.createElement('canvas');
+  c.width = Math.round(DW * k); c.height = Math.round(L.H * k);
+  draw(c.getContext('2d'), st, L, k);
+  const blob = await new Promise(res => c.toBlob(res, 'image/png'));
+  if (!blob) throw new Error('encode');
+  return {blob, w: c.width, h: c.height};
+}
+// Outside claude.ai: phones get the share sheet (Save Image), computers a normal download.
+async function saveDirect(blob, name){
+  const coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+  if (coarse && navigator.canShare && typeof File === 'function') {
+    const file = new File([blob], name, {type: 'image/png'});
+    if (navigator.canShare({files: [file]})) {
+      try { await navigator.share({files: [file], title: 'SwingX'}); return 'shared'; }
+      catch (e) { if (e && e.name === 'AbortError') return 'cancelled'; }
+    }
+  }
+  const url = URL.createObjectURL(blob), a = document.createElement('a');
+  a.href = url; a.download = name; a.rel = 'noopener';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+  return 'downloaded';
+}
+let sheetUrl = null;
+function showSheet(blob, label){
+  if (sheetUrl) URL.revokeObjectURL(sheetUrl);
+  sheetUrl = URL.createObjectURL(blob);
+  const img = $('sheet-img'); img.src = sheetUrl; img.alt = label;
+  $('sheet').hidden = false; $('sheet-close').focus();
+}
+function closeSheet(){ $('sheet').hidden = true; if (sheetUrl) { URL.revokeObjectURL(sheetUrl); sheetUrl = null; } $('download').focus(); }
+$('sheet-close').addEventListener('click', closeSheet);
+$('sheet').addEventListener('click', e => { if (e.target === $('sheet')) closeSheet(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('sheet').hidden) closeSheet(); });
+
+$('download').addEventListener('click', async () => {
+  const btn = $('download'); btn.disabled = true; setStatus('Rendering the image…');
+  try {
+    const {blob, w, h} = await renderPng();
+    const name = 'swingx-journal-' + (state.date || todayISO()) + '.png';
+    const label = 'SwingX journal card, ' + (dateLabel(state.date) || 'today');
+    const dl = await getDownloads();
+    if (!dl) {
+      if (window.top === window.self) {
+        const how = await saveDirect(blob, name);
+        setStatus(how === 'cancelled' ? 'Sharing cancelled.' : how === 'shared' ? 'Image ready: ' + w + ' × ' + h + ' px.' : 'Downloaded ' + name + ' (' + w + ' × ' + h + ' px).');
+      } else { showSheet(blob, label); setStatus('Image ready: ' + w + ' × ' + h + ' px.'); }
+      return;
+    }
+    try {
+      await dl.save({filename: name, data: blob});
+      setStatus('Saved ' + name + ' (' + w + ' × ' + h + ' px).');
+    } catch (err) {
+      const code = err && err.code;
+      if (code === 'declined') setStatus('Download cancelled.');
+      else if (code === 'rate_limited') setStatus('A save prompt is already open. Finish that one, then try again.');
+      else { showSheet(blob, label); setStatus('Image ready: ' + w + ' × ' + h + ' px.'); }
+    }
+  } catch (err) {
+    setStatus("The image couldn't be created. Try the 1080 px size.");
+  } finally { btn.disabled = false; }
+});
+
+/* ---------- boot ---------- */
+syncFields(); renderTrades(); renderLines(); drawPreview();
+fontsReady.then(() => drawPreview());
+imgReady.then(() => drawPreview());
+if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener('loadingdone', () => drawPreview());
+})();
+</script>
+</body>
+</html>
