@@ -12,13 +12,20 @@ P&L, P&L %, win rate, average return per trade and total P&L are calculated, and
 ## What's here
 
 ```
-index.html      the whole app: page, styles and the canvas that draws the card
-gateway.webp    Gateway of India sketch in the card header
-howrah.webp     Howrah Bridge sketch in the card header
-.nojekyll       tells GitHub Pages to serve the files as they are
+index.html                    the whole app: page, styles and the canvas that draws the card
+brand/swingx-logo.svg         logo for light backgrounds
+brand/swingx-logo-on-dark.svg logo on the ink background (the main version)
+brand/swingx-icon.svg         app icon, profile picture and favicon
+.nojekyll                     tells GitHub Pages to serve the files as they are
 ```
 
-There is no build step and there are no dependencies. Fonts (Poppins and Kalam) load from Google Fonts.
+There is no build step and there are no dependencies. The font (Manrope) loads from Google Fonts.
+
+## Brand
+
+- Colours: ink `#0F1B2D` (card background runs `#14243D` to `#091322`), electric blue `#2F6BFF`, light blue `#7AA0FF` for the x and labels on dark, green `#2FD27D` for gains, red `#FF6B6B` for losses.
+- Type: Manrope ExtraBold for the wordmark and numbers, SemiBold for text.
+- Logo: a blue rounded tile with one price swing (up, a pullback, up again) ending in a live dot, then the lowercase wordmark `swingx` with a light-blue x. The logo files in `brand/` have their lettering converted to outlines.
 
 ## How the numbers work
 

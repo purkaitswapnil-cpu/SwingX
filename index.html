@@ -6,36 +6,35 @@
 <meta name="description" content="SwingX daily trading journal: add your trades, P&L and win rate calculate themselves, download the card as a high-resolution image.">
 <meta property="og:title" content="SwingX · The Daily 1% Club">
 <meta property="og:description" content="Make your daily trading journal card. P&L, win rate and averages calculate themselves.">
-<meta name="theme-color" content="#16295a">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2316295a'/%3E%3Cpath d='M12 48 L54 40 L52 52 L10 58Z' fill='%23f7d54a'/%3E%3Ctext x='32' y='42' font-family='Arial,sans-serif' font-weight='900' font-size='34' text-anchor='middle' fill='%23ffffff'%3ESX%3C/text%3E%3C/svg%3E">
+<meta name="theme-color" content="#0f1b2d">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='28' fill='%232f6bff'/%3E%3Cpath d='M19 68 C29 68 32 40 41.5 40 C50 40 50.5 56 58 56 C66 56 68.5 33 77 30' stroke='%23fff' stroke-width='9.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='78.5' cy='29.5' r='8.5' fill='%23fff' stroke='%232f6bff' stroke-width='3'/%3E%3C/svg%3E">
 <style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,-apple-system,"Segoe UI",sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
 </head>
 <body>
 <title>SwingX</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Poppins:ital,wght@0,400;0,500;0,600;0,700;0,800;1,800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap">
 <style>
 /* Layout: editor ledger on the left, the live journal card pinned on the right; stacks to one column on phones. */
 :root{
-  --bg:#edf0f6; --panel:#ffffff; --panel-2:#f6f8fc; --ink:#14213d; --muted:#5a6782; --line:#d8dfeb;
-  --accent:#16295a; --accent-ink:#ffffff; --hi:#f7d54a; --hi-ink:#16295a; --hi-soft:#fff5cc;
-  --gain:#1e7b35; --loss:#c1352b; --field:#ffffff; --focus:#2f6fe4;
-  --display:"Poppins","Segoe UI","Helvetica Neue",Arial,sans-serif;
-  --body:"Poppins","Segoe UI","Helvetica Neue",Arial,sans-serif;
-  --hand:"Kalam","Segoe Print","Comic Sans MS",cursive;
+  --bg:#eef2f8; --panel:#ffffff; --panel-2:#f5f8fd; --ink:#0f1b2d; --muted:#5b6b82; --line:#d9e1ee;
+  --accent:#2f6bff; --accent-ink:#ffffff; --brand:#2f6bff; --brand-x:#2f6bff; --hi-soft:#e8efff;
+  --gain:#15803d; --loss:#dc2626; --field:#ffffff; --focus:#2f6bff;
+  --display:"Manrope","Segoe UI","Helvetica Neue",Arial,sans-serif;
+  --body:"Manrope","Segoe UI","Helvetica Neue",Arial,sans-serif;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
-    --bg:#0d1321; --panel:#151e32; --panel-2:#1a253d; --ink:#e7ecf6; --muted:#9ba7c0; --line:#2a3653;
-    --accent:#f7d54a; --accent-ink:#16295a; --hi:#f7d54a; --hi-ink:#16295a; --hi-soft:#383113;
-    --gain:#5bd07a; --loss:#ff8073; --field:#0f172a; --focus:#8fb1ff; color-scheme:dark;
+    --bg:#0a1424; --panel:#111f35; --panel-2:#14253f; --ink:#f3f6fb; --muted:#8fa0b8; --line:#22344f;
+    --accent:#4d82ff; --accent-ink:#ffffff; --brand-x:#7aa0ff; --hi-soft:#16264a;
+    --gain:#2fd27d; --loss:#ff6b6b; --field:#0d1a2e; --focus:#7aa0ff; color-scheme:dark;
   }
 }
 :root[data-theme="dark"]{
-  --bg:#0d1321; --panel:#151e32; --panel-2:#1a253d; --ink:#e7ecf6; --muted:#9ba7c0; --line:#2a3653;
-  --accent:#f7d54a; --accent-ink:#16295a; --hi:#f7d54a; --hi-ink:#16295a; --hi-soft:#383113;
-  --gain:#5bd07a; --loss:#ff8073; --field:#0f172a; --focus:#8fb1ff; color-scheme:dark;
+  --bg:#0a1424; --panel:#111f35; --panel-2:#14253f; --ink:#f3f6fb; --muted:#8fa0b8; --line:#22344f;
+  --accent:#4d82ff; --accent-ink:#ffffff; --brand-x:#7aa0ff; --hi-soft:#16264a;
+  --gain:#2fd27d; --loss:#ff6b6b; --field:#0d1a2e; --focus:#7aa0ff; color-scheme:dark;
 }
 *{box-sizing:border-box}
 [hidden]{display:none!important}
@@ -43,9 +42,12 @@ body{background:var(--bg);color:var(--ink);font:14.5px/1.5 var(--body);
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
 .wrap{max-width:1200px;margin:0 auto;display:grid;gap:20px}
 .top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:6px 24px}
-.brand{font:800 clamp(24px,4vw,34px)/1.15 var(--display);letter-spacing:-.01em;margin:0;text-wrap:balance}
-.tagline{margin:2px 0 0;font:700 clamp(15px,2.2vw,18px)/1.3 var(--display);color:var(--ink)}
-.tagline mark{background:linear-gradient(178deg,transparent 14%,var(--hi) 14%,var(--hi) 86%,transparent 86%);color:var(--hi-ink);font-style:italic;padding:0 .14em;border-radius:3px}
+.logo{display:flex;align-items:center;gap:12px;margin:0}
+.logo svg{width:48px;height:48px;flex:none}
+.logo .word{display:grid;line-height:1.05}
+.logo .name{font:800 30px/1 var(--display);letter-spacing:-.02em;color:var(--ink)}
+.logo .name span{color:var(--brand-x)}
+.logo .tag{font:600 13.5px/1.3 var(--display);color:var(--muted);margin-top:3px}
 .lede{color:var(--muted);margin:2px 0 0;max-width:62ch}
 .grid{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(0,1fr);gap:24px;align-items:start}
 @media (max-width:900px){.grid{grid-template-columns:minmax(0,1fr)}}
@@ -102,7 +104,7 @@ input.bad{border-color:var(--loss)}
 .lines{display:grid;gap:8px}
 .lines .ln{display:grid;grid-template-columns:20px minmax(0,1fr);gap:8px;align-items:center}
 .lines .ln i{font-style:normal;color:var(--muted);text-align:center;font-weight:600}
-.notes input{font-family:var(--hand);font-size:17px;padding-block:6px}
+.notes input{font-size:15px}
 .powered .ln svg{width:18px;height:18px;justify-self:center;color:var(--gain)}
 .newday .nd-main{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center}
 .newday .nd-main>div{display:grid;gap:4px;min-width:0;flex:1 1 260px}
@@ -136,8 +138,7 @@ input.bad{border-color:var(--loss)}
 <div class="wrap">
   <header class="top">
     <div>
-      <h1 class="brand">SwingX</h1>
-      <p class="tagline">The Daily <mark>1%</mark> Club</p>
+      <h1 class="logo"><svg viewBox="0 0 100 100" aria-hidden="true"><rect width="100" height="100" rx="28" fill="#2f6bff"/><path d="M19 68 C29 68 32 40 41.5 40 C50 40 50.5 56 58 56 C66 56 68.5 33 77 30" stroke="#fff" stroke-width="9.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="78.5" cy="29.5" r="8.5" fill="#fff" stroke="#2f6bff" stroke-width="3"/></svg><span class="word"><span class="name">swing<span>x</span></span><span class="tag">The Daily 1% Club</span></span></h1>
       <p class="lede">Add today's trades. P&amp;L, win rate and averages calculate themselves, and the card downloads as a sharp PNG.</p>
     </div>
   </header>
@@ -378,27 +379,27 @@ function signedPct(n){ return sign(n) + Math.abs(n).toFixed(2) + '%'; }
 function price(n){ return fmt2.format(n); }
 
 /* ---------- canvas drawing ---------- */
-const DW = 1086; // design width; the card is laid out in these units and scaled on export
+// The card: 1086 × 1448 design units (3:4), drawn in the SwingX brand: ink, electric blue, Manrope.
+const DW = 1086, DH = 1448;
 const C = {
-  paper:'#f7f4ec', navy:'#16295a', ink:'#1b2232', sub:'#2a3142',
-  green:'#1e7b35', greenPill:'#2b8a3e', red:'#c1352b', redPill:'#c8443a',
-  hi:'#f7d54a', tape:'#efe1bd', check:'#2f8f46'
+  bg1:'#14243d', bg2:'#091322', grid:'rgba(140,170,220,0.05)', panel1:'#122139', panel2:'#0e1b30', line:'#22344f', hair:'#1b2b44',
+  text:'#f3f6fb', soft:'#cbd5e4', muted:'#8496b0', faint:'#5e708b',
+  blue:'#2f6bff', blueLt:'#7aa0ff', up:'#2fd27d', down:'#ff6b6b', amber:'#ffb454'
 };
-const SANS = '"Poppins","Segoe UI","Helvetica Neue",Arial,sans-serif';
-const HAND = '"Kalam","Segoe Print","Comic Sans MS",cursive';
-const F = (w, s, fam, it) => (it ? 'italic ' : '') + w + ' ' + s + 'px ' + (fam === 'hand' ? HAND : SANS);
+const SANS = '"Manrope","Segoe UI","Helvetica Neue",Arial,sans-serif';
+const F = (w, s) => w + ' ' + s + 'px ' + SANS;
+const imgReady = Promise.resolve();
+const WEEKDAY = {Sun:'Sunday', Mon:'Monday', Tue:'Tuesday', Wed:'Wednesday', Thu:'Thursday', Fri:'Friday', Sat:'Saturday'};
 
-function rng(seed){ return function(){ seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 function rr(ctx, x, y, w, h, r){
   r = Math.min(r, w / 2, h / 2);
   ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
   ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
 }
-function shadow(ctx, k, blur, oy, color){ ctx.shadowColor = color; ctx.shadowBlur = blur * k; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = oy * k; }
-function noShadow(ctx){ ctx.shadowColor = 'rgba(0,0,0,0)'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0; }
-function fit(ctx, text, w, max, min, maxW, fam, it){
-  let s = max; ctx.font = F(w, s, fam, it);
-  while (s > min && ctx.measureText(text).width > maxW) { s -= 1; ctx.font = F(w, s, fam, it); }
+function rgba(hex, a){ const n = parseInt(hex.slice(1), 16); return 'rgba(' + (n >> 16) + ',' + (n >> 8 & 255) + ',' + (n & 255) + ',' + a + ')'; }
+function fit(ctx, text, w, max, min, maxW){
+  let s = max; ctx.font = F(w, s);
+  while (s > min && ctx.measureText(text).width > maxW) { s -= 1; ctx.font = F(w, s); }
   return s;
 }
 function clip(ctx, text, maxW){
@@ -407,7 +408,15 @@ function clip(ctx, text, maxW){
   return t + '…';
 }
 function txt(ctx, s, x, y, align){ ctx.textAlign = align || 'left'; ctx.fillText(s, x, y); ctx.textAlign = 'left'; }
-function line(ctx, x1, y1, x2, y2){ ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); }
+// letter-spaced uppercase label; returns its width
+function label(ctx, s, x, y, size, color, align, sp){
+  sp = sp == null ? size * 0.14 : sp; ctx.font = F(800, size); ctx.fillStyle = color;
+  const chars = [...s], ws = chars.map(c => ctx.measureText(c).width);
+  const w = ws.reduce((a, b) => a + b, 0) + sp * (chars.length - 1);
+  let cx = align === 'right' ? x - w : align === 'center' ? x - w / 2 : x;
+  chars.forEach((c, i) => { ctx.fillText(c, cx, y); cx += ws[i] + sp; });
+  return w;
+}
 function wrap(ctx, text, maxW){
   const words = text.split(/\s+/).filter(Boolean); const out = []; let cur = '';
   for (let w of words) {
@@ -422,50 +431,36 @@ function wrap(ctx, text, maxW){
   if (cur) out.push(cur);
   return out;
 }
-
-let paperTile = null;
-function paperPattern(ctx){
-  if (!paperTile) {
-    const c = document.createElement('canvas'); c.width = c.height = 320; const x = c.getContext('2d'); const r = rng(7);
-    const id = x.createImageData(320, 320);
-    for (let i = 0; i < id.data.length; i += 4) {
-      const dark = r() < 0.55;
-      id.data[i] = dark ? 110 : 255; id.data[i+1] = dark ? 92 : 255; id.data[i+2] = dark ? 60 : 248; id.data[i+3] = Math.floor(r() * 16);
-    }
-    x.putImageData(id, 0, 0);
-    for (let i = 0; i < 90; i++) {
-      x.strokeStyle = 'rgba(125,104,70,' + (0.05 + r() * 0.07) + ')'; x.lineWidth = 0.7;
-      const px = r() * 320, py = r() * 320, a = r() * Math.PI * 2, len = 5 + r() * 16;
-      x.beginPath(); x.moveTo(px, py);
-      x.quadraticCurveTo(px + Math.cos(a) * len / 2 + (r() - .5) * 5, py + Math.sin(a) * len / 2 + (r() - .5) * 5, px + Math.cos(a) * len, py + Math.sin(a) * len);
-      x.stroke();
-    }
-    paperTile = c;
-  }
-  return ctx.createPattern(paperTile, 'repeat');
+function panel(ctx, x, y, w, h, r, top, bottom, stroke){
+  const g = ctx.createLinearGradient(0, y, 0, y + h); g.addColorStop(0, top); g.addColorStop(1, bottom);
+  rr(ctx, x, y, w, h, r); ctx.fillStyle = g; ctx.fill();
+  rr(ctx, x + .5, y + .5, w - 1, h - 1, r); ctx.strokeStyle = stroke || C.line; ctx.lineWidth = 1.2; ctx.stroke();
 }
+function hairline(ctx, x1, x2, y){ ctx.fillStyle = C.hair; ctx.fillRect(x1, y, x2 - x1, 1.2); }
+const SWING = typeof Path2D === 'function' ? new Path2D('M19 68 C29 68 32 40 41.5 40 C50 40 50.5 56 58 56 C66 56 68.5 33 77 30') : null;
+function logoTile(ctx, x, y, s){
+  ctx.save(); ctx.translate(x, y); ctx.scale(s / 100, s / 100);
+  rr(ctx, 0, 0, 100, 100, 28); ctx.fillStyle = C.blue; ctx.fill();
+  ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 9.5; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  if (SWING) ctx.stroke(SWING);
+  ctx.beginPath(); ctx.arc(78.5, 29.5, 8.5, 0, Math.PI * 2); ctx.fillStyle = '#ffffff'; ctx.fill();
+  ctx.lineWidth = 3; ctx.strokeStyle = C.blue; ctx.stroke();
+  ctx.restore();
+}
+function tone(n){ return n > 0.0049 ? C.up : n < -0.0049 ? C.down : C.text; }
 
-const IMG = {gateway: new Image(), howrah: new Image()};
-IMG.gateway.src = 'gateway.webp';
-IMG.howrah.src = 'howrah.webp';
-const imgReady = Promise.all(Object.values(IMG).map(im => im.decode ? im.decode().catch(() => {}) : new Promise(r => { im.onload = im.onerror = r; })));
-
-// The card is always 3:4 (1086 × 1448 design units → 1080 × 1440 px at 1×), whatever the trade count.
-// Rows keep their natural height while the notes keep room to write; with many trades the notes shrink
-// first, then the rows. With few trades the notes grow and the spare space goes into the gaps.
-const DH = 1448;
+// Fixed 3:4 card. The table keeps its natural row height while the notes keep room to write;
+// with many trades the notes shrink first, then the rows. Spare space with few trades sits above the notes.
 function layout(st){
   const n = Math.max(1, st.rows.length), opt = st.mode === 'options';
-  const T = 551, HH = 58, STATS = 120, BOTTOM = 72;
-  let g1 = 30, g2 = 42;
-  const avail = DH - (T + HH + g1 + STATS + g2 + BOTTOM);   // shared by table rows and the notes row
-  const pref = opt ? 60 : 53, minRH = 30, NOTES_SOFT = 220, NOTES_MIN = 170, NOTES_MAX = 440;
+  const T = 572, HH = 50, FOOT = 1356, G = 24;
+  const avail = FOOT - 28 - T - HH - G;
+  const pref = opt ? 64 : 58, minRH = 30, SOFT = 230, MIN = 150, MAX = 400;
   let RH = pref, notesH = avail - n * RH;
-  if (notesH < NOTES_SOFT) { RH = Math.max(minRH, (avail - NOTES_SOFT) / n); notesH = avail - n * RH; }
-  if (notesH < NOTES_MIN) { notesH = NOTES_MIN; RH = (avail - NOTES_MIN) / n; }
-  if (notesH > NOTES_MAX) { const extra = notesH - NOTES_MAX; notesH = NOTES_MAX; g1 += extra / 2; g2 += extra / 2; }
-  const S = T + HH + n * RH + g1, B = S + STATS + g2;
-  return {T, HH, RH, n, S, B, notesH, H: DH};
+  if (notesH < SOFT) { RH = Math.max(minRH, (avail - SOFT) / n); notesH = avail - n * RH; }
+  if (notesH < MIN) { notesH = MIN; RH = (avail - MIN) / n; }
+  let extra = 0; if (notesH > MAX) { extra = notesH - MAX; notesH = MAX; }
+  return {T, HH, RH, n, B: T + HH + n * RH + G + extra, notesH, FOOT, H: DH};
 }
 
 function draw(ctx, st, L, k){
@@ -473,394 +468,251 @@ function draw(ctx, st, L, k){
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
   ctx.scale(k, k);
-  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
   ctx.textBaseline = 'alphabetic';
-  const H = L.H;
+  const bg = ctx.createLinearGradient(0, 0, DW * 0.35, DH); bg.addColorStop(0, C.bg1); bg.addColorStop(1, C.bg2);
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, DW, DH);
+  const glow = ctx.createRadialGradient(DW * 0.88, 70, 0, DW * 0.88, 70, 620);
+  glow.addColorStop(0, 'rgba(47,107,255,0.24)'); glow.addColorStop(1, 'rgba(47,107,255,0)');
+  ctx.fillStyle = glow; ctx.fillRect(0, 0, DW, DH);
+  ctx.fillStyle = C.grid;
+  for (let x = 0; x <= DW; x += 54.3) ctx.fillRect(x, 0, 1, DH);
+  for (let y = 0; y <= DH; y += 54.3) ctx.fillRect(0, y, DW, 1);
 
-  ctx.fillStyle = C.paper; ctx.fillRect(0, 0, DW, H);
-  ctx.fillStyle = paperPattern(ctx); ctx.fillRect(0, 0, DW, H);
-  const vg = ctx.createRadialGradient(DW / 2, H / 2, Math.min(DW, H) * 0.35, DW / 2, H / 2, Math.max(DW, H) * 0.75);
-  vg.addColorStop(0, 'rgba(255,255,255,0)'); vg.addColorStop(1, 'rgba(125,100,55,0.12)');
-  ctx.fillStyle = vg; ctx.fillRect(0, 0, DW, H);
-
-  if (IMG.gateway.complete && IMG.gateway.naturalWidth) ctx.drawImage(IMG.gateway, 10, 112, 390, 238);
-  if (IMG.howrah.complete && IMG.howrah.naturalWidth) ctx.drawImage(IMG.howrah, 690, 112, 386, 238);
-
-  ctx.strokeStyle = C.navy; ctx.lineWidth = 2.6; ctx.strokeRect(9, 9, DW - 18, H - 18);
-
-  drawBrand(ctx);
-  drawTagline(ctx);
-  drawSubtitle(ctx, st.subtitle);
-  if (st.date) drawDate(ctx, st.date, k);
-  drawKpis(ctx, st, k);
-  drawTable(ctx, st, L, k);
-  drawStats(ctx, st, L, k);
-  const o1 = drawNotes(ctx, st, L, k);
-  const o2 = drawPowered(ctx, st, L, k);
+  drawHeader(ctx, st);
+  drawHero(ctx, st);
+  drawStats(ctx, st);
+  drawTable(ctx, st, L);
+  const o1 = drawNotes(ctx, st, L), o2 = drawPowered(ctx, st, L);
+  drawFooter(ctx, L);
   ctx.restore();
   return {notesOverflow: o1, poweredOverflow: o2};
 }
 
-// Header: SwingX wordmark, then the tagline with the highlighted 1%, then the journal label and date.
-function drawBrand(ctx){
-  const brand = 'SwingX';
-  const s = fit(ctx, brand, 800, 108, 60, 520);
-  const bw = ctx.measureText(brand).width, f = s / 96, gap = 20 * f;
-  const x = DW / 2 - (bw + gap + 50 * f) / 2, base = 120;
-  ctx.fillStyle = C.navy; ctx.fillText(brand, x, base);
-  drawTitleBars(ctx, x + bw + gap, base, f);
+function drawHeader(ctx, st){
+  const x = 64, y = 58, S = 90;
+  logoTile(ctx, x, y, S);
+  ctx.font = F(800, 56); ctx.fillStyle = C.text; ctx.fillText('swing', x + S + 22, y + 52);
+  const w = ctx.measureText('swing').width; ctx.fillStyle = C.blueLt; ctx.fillText('x', x + S + 24 + w, y + 52);
+  ctx.font = F(600, 21); ctx.fillStyle = C.muted; ctx.fillText('The Daily 1% Club', x + S + 24, y + 86);
+  // right: journal pill, date, weekday and subtitle
+  const R = DW - 64, mode = st.mode === 'options' ? 'OPTIONS' : 'STOCKS';
+  ctx.font = F(800, 14); const pw = [...mode].reduce((a, c) => a + ctx.measureText(c).width, 0) + 2.2 * (mode.length - 1) + 32;
+  rr(ctx, R - pw, 58, pw, 32, 16); ctx.fillStyle = 'rgba(47,107,255,0.16)'; ctx.fill();
+  rr(ctx, R - pw + .5, 58.5, pw - 1, 31, 16); ctx.strokeStyle = 'rgba(122,160,255,0.45)'; ctx.lineWidth = 1.2; ctx.stroke();
+  label(ctx, mode, R - pw / 2, 79, 14, C.blueLt, 'center', 2.2);
+  const m = /^(.*) \((\w+)\)$/.exec(st.date || '');
+  ctx.fillStyle = C.text; fit(ctx, m ? m[1] : (st.date || ''), 800, 36, 24, 380); txt(ctx, m ? m[1] : (st.date || ''), R, 132, 'right');
+  const sub = [m ? WEEKDAY[m[2]] || m[2] : '', st.subtitle].filter(Boolean).join('  ·  ');
+  ctx.fillStyle = C.muted; fit(ctx, sub, 600, 19, 14, 420); txt(ctx, sub, R, 162, 'right');
+  hairline(ctx, 64, DW - 64, 196);
 }
-function drawTagline(ctx){
-  const parts = [['The Daily ', 700, false], ['1%', 800, true], [' Club', 700, false]];
-  const measure = s => parts.reduce((w, p) => { ctx.font = F(p[1], s, 0, p[2]); return w + ctx.measureText(p[0]).width; }, 0);
-  let size = 44;
-  while (size > 28 && measure(size) > 460) size -= 1;
-  const total = measure(size), cx = DW / 2, base = 188;
-  let x = cx - total / 2;
-  for (const [t, w, it] of parts) {
-    ctx.font = F(w, size, 0, it);
-    const tw = ctx.measureText(t).width;
-    if (it) drawHighlight(ctx, x, base, tw, size);
-    ctx.fillStyle = C.navy; ctx.fillText(t, x, base);
-    x += tw;
-  }
-  const ly = base - size * 0.34, Lw = 72, g = 22;
-  ctx.strokeStyle = C.navy; ctx.lineWidth = 2.6; ctx.lineCap = 'round';
-  line(ctx, cx - total / 2 - g - Lw, ly, cx - total / 2 - g, ly);
-  line(ctx, cx + total / 2 + g, ly, cx + total / 2 + g + Lw, ly);
-  ctx.lineCap = 'butt';
-}
-function drawHighlight(ctx, x, base, w, size){
-  const u = Math.max(size / 96, 0.6), top = base - size * 0.74, bot = base + size * 0.10, r = rng(11);
-  ctx.save(); ctx.fillStyle = C.hi; ctx.globalAlpha = 0.95;
-  ctx.beginPath(); ctx.moveTo(x - 2 * u, top + 6 * u);
-  for (let i = 1; i <= 8; i++) { const t = i / 8; ctx.lineTo(x - 2 * u + (w + 16 * u) * t, top + 6 * u - 7 * u * t + (r() - .5) * 3 * u); }
-  ctx.lineTo(x + w + 8 * u, bot - 6 * u);
-  for (let i = 8; i >= 0; i--) { const t = i / 8; ctx.lineTo(x - 16 * u + (w + 22 * u) * t, bot + 2 * u - 5 * u * t + (r() - .5) * 3 * u); }
-  ctx.closePath(); ctx.fill();
-  ctx.globalAlpha = 0.28; ctx.strokeStyle = '#e2ad1c'; ctx.lineWidth = 2 * u;
-  for (let i = 0; i < 4; i++) { const yy = top + 12 * u + i * (bot - top - 20 * u) / 3; line(ctx, x - 8 * u + (3 - i) * 2 * u, yy, x + w + 4 * u, yy - 3 * u); }
+
+function sparkline(ctx, st, x, y, w, h, col){
+  if (!st.rows.length) return;
+  const pts = [0]; st.rows.forEach(r => pts.push(pts[pts.length - 1] + r.pnl));
+  const lo = Math.min(...pts), hi = Math.max(...pts), span = hi - lo || 1;
+  const X = i => x + w * i / (pts.length - 1), Y = v => y + h - (v - lo) / span * h;
+  ctx.save();
+  ctx.setLineDash([3, 5]); ctx.strokeStyle = 'rgba(203,213,228,0.25)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(x, Y(0)); ctx.lineTo(x + w, Y(0)); ctx.stroke(); ctx.setLineDash([]);
+  ctx.beginPath(); pts.forEach((v, i) => i ? ctx.lineTo(X(i), Y(v)) : ctx.moveTo(X(i), Y(v)));
+  const g = ctx.createLinearGradient(0, y, 0, y + h); g.addColorStop(0, rgba(col, 0.28)); g.addColorStop(1, rgba(col, 0));
+  ctx.lineTo(x + w, y + h); ctx.lineTo(x, y + h); ctx.closePath(); ctx.fillStyle = g; ctx.fill();
+  ctx.beginPath(); pts.forEach((v, i) => i ? ctx.lineTo(X(i), Y(v)) : ctx.moveTo(X(i), Y(v)));
+  ctx.strokeStyle = col; ctx.lineWidth = 2.6; ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.stroke();
+  const ex = X(pts.length - 1), ey = Y(pts[pts.length - 1]);
+  ctx.beginPath(); ctx.arc(ex, ey, 5, 0, Math.PI * 2); ctx.fillStyle = col; ctx.fill();
+  ctx.beginPath(); ctx.arc(ex, ey, 10, 0, Math.PI * 2); ctx.fillStyle = rgba(col, 0.2); ctx.fill();
   ctx.restore();
 }
-function drawTitleBars(ctx, x, base, s){
-  ctx.fillStyle = C.navy;
-  const bw = 10 * s, gap = 7 * s, hs = [18, 30, 44];
-  hs.forEach((h, i) => { rr(ctx, x + i * (bw + gap), base - 9 * s - h * s, bw, h * s, 1.5 * s); ctx.fill(); });
-  rr(ctx, x - 3 * s, base - 5 * s, 3 * bw + 2 * gap + 6 * s, 5 * s, 2 * s); ctx.fill();
+function drawHero(ctx, st){
+  const y = 222, h = 186, col = st.trades ? tone(st.totalPnl) : C.text;
+  // total P&L
+  const x = 64, w = 580;
+  panel(ctx, x, y, w, h, 22, col === C.text ? C.panel1 : rgba(col, 0.15), col === C.text ? C.panel2 : rgba(col, 0.03), col === C.text ? C.line : rgba(col, 0.35));
+  label(ctx, 'TOTAL P&L  ·  TODAY', x + 32, y + 46, 14, C.muted);
+  const val = st.trades ? signedMoney(st.totalPnl, true) : '₹0';
+  const pct = st.trades && st.capital > 0 ? signedPct(st.totalPct) : '0.00%';
+  ctx.font = F(800, 22); const cw = ctx.measureText(pct).width + 30;
+  const vs = fit(ctx, val, 800, 76, 36, w - 64 - cw - 18);
+  const vw = ctx.measureText(val).width;
+  ctx.fillStyle = col; ctx.fillText(val, x + 30, y + 118);
+  const cy = y + 118 - vs * 0.36;
+  rr(ctx, x + 30 + vw + 18, cy - 19, cw, 38, 19); ctx.fillStyle = col === C.text ? 'rgba(203,213,228,0.12)' : rgba(col, 0.18); ctx.fill();
+  ctx.fillStyle = col; ctx.font = F(800, 22); ctx.fillText(pct, x + 30 + vw + 33, cy + 8);
+  sparkline(ctx, st, x + 32, y + 136, w - 64, 34, col === C.text ? C.blueLt : col);
+  // capital deployed, best and worst trade
+  const x2 = 668, w2 = DW - 64 - x2;
+  panel(ctx, x2, y, w2, h, 22, C.panel1, C.panel2);
+  label(ctx, 'CAPITAL DEPLOYED', x2 + 28, y + 46, 14, C.muted);
+  ctx.fillStyle = C.text; const capTxt = '₹' + money(st.capital || 0);
+  fit(ctx, capTxt, 800, 48, 26, w2 - 56); ctx.fillText(capTxt, x2 + 28, y + 100);
+  hairline(ctx, x2 + 28, x2 + w2 - 28, y + 122);
+  const sorted = st.rows.slice().sort((a, b) => b.pnl - a.pnl);
+  const lines = !sorted.length ? [] : sorted.length === 1 ? [['BEST', sorted[0]]] : [['BEST', sorted[0]], ['WORST', sorted[sorted.length - 1]]];
+  if (!lines.length) { ctx.font = F(600, 16); ctx.fillStyle = C.faint; ctx.fillText('No trades yet', x2 + 28, y + 156); }
+  lines.forEach(([lab, r], i) => {
+    const ly = y + 152 + i * 24;
+    label(ctx, lab, x2 + 28, ly, 11, C.faint);
+    const v = signedMoney(r.pnl, true); ctx.font = F(800, 16); const vw2 = ctx.measureText(v).width;
+    ctx.fillStyle = tone(r.pnl); txt(ctx, v, x2 + w2 - 28, ly, 'right');
+    ctx.font = F(700, 15); ctx.fillStyle = C.soft;
+    txt(ctx, clip(ctx, r.stock, w2 - 56 - 50 - vw2 - 10), x2 + w2 - 28 - vw2 - 10, ly, 'right');
+  });
 }
-function drawSubtitle(ctx, text){
-  if (!text) return;
-  const chars = [...text.toUpperCase()], sp = 3.4;
-  let size = 21;
-  const widthAt = () => { ctx.font = F(600, size); return chars.reduce((a, c) => a + ctx.measureText(c).width, 0) + sp * (chars.length - 1); };
-  while (size > 14 && widthAt() > 390) size -= 1;
-  let x = DW / 2 - widthAt() / 2;
-  ctx.fillStyle = '#3a4a70';
-  for (const c of chars) { ctx.fillText(c, x, 230); x += ctx.measureText(c).width + sp; }
-}
-function tornRect(ctx, x, y, w, h, seed){
-  const r = rng(seed), n = 9;
-  ctx.beginPath(); ctx.moveTo(x + 2, y);
-  ctx.lineTo(x + w - 2, y + 1);
-  for (let i = 1; i <= n; i++) ctx.lineTo(x + w + (i % 2 ? 3 : -2) + (r() - .5) * 4, y + h * i / n);
-  ctx.lineTo(x + 2, y + h - 1);
-  for (let i = n - 1; i >= 0; i--) ctx.lineTo(x + (i % 2 ? -3 : 2) + (r() - .5) * 4, y + h * i / n);
-  ctx.closePath();
-}
-function drawCalendar(ctx, x, y, s){
-  ctx.save(); ctx.strokeStyle = C.ink; ctx.fillStyle = C.ink; ctx.lineWidth = s * 0.08; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
-  rr(ctx, x, y + s * 0.12, s, s * 0.86, s * 0.14); ctx.stroke();
-  rr(ctx, x, y + s * 0.12, s, s * 0.26, s * 0.12); ctx.fill(); ctx.fillRect(x, y + s * 0.26, s, s * 0.12);
-  line(ctx, x + s * 0.28, y, x + s * 0.28, y + s * 0.2); line(ctx, x + s * 0.72, y, x + s * 0.72, y + s * 0.2);
-  for (let rI = 0; rI < 2; rI++) for (let c = 0; c < 3; c++) ctx.fillRect(x + s * (0.19 + c * 0.24), y + s * (0.52 + rI * 0.2), s * 0.14, s * 0.11);
-  ctx.restore();
-}
-function drawDate(ctx, label, k){
-  ctx.font = F(500, 29); const tw = ctx.measureText(label).width;
-  const iconS = 29, gap = 15, w = Math.max(296, 28 + iconS + gap + tw + 30), h = 58;
-  ctx.save(); ctx.translate(DW / 2, 278); ctx.rotate(-0.012);
-  shadow(ctx, k, 12, 4, 'rgba(70,50,20,0.22)');
-  tornRect(ctx, -w / 2, -h / 2, w, h, 21); ctx.fillStyle = C.tape; ctx.fill();
-  noShadow(ctx);
-  const g = ctx.createLinearGradient(0, -h / 2, 0, h / 2); g.addColorStop(0, 'rgba(255,255,255,0.30)'); g.addColorStop(1, 'rgba(150,110,50,0.10)');
-  tornRect(ctx, -w / 2, -h / 2, w, h, 21); ctx.fillStyle = g; ctx.fill();
-  const x0 = -(iconS + gap + tw) / 2;
-  drawCalendar(ctx, x0, -iconS / 2 - 1, iconS);
-  ctx.fillStyle = C.ink; ctx.font = F(500, 29); ctx.fillText(label, x0 + iconS + gap, 10);
-  ctx.restore();
-}
-function card(ctx, k, x, y, w, h, r, fill, stroke){
-  ctx.save(); shadow(ctx, k, 18, 6, 'rgba(35,45,75,0.10)'); rr(ctx, x, y, w, h, r); ctx.fillStyle = fill; ctx.fill(); ctx.restore();
-  if (stroke) { rr(ctx, x + .75, y + .75, w - 1.5, h - 1.5, r); ctx.strokeStyle = stroke; ctx.lineWidth = 1.5; ctx.stroke(); }
-}
-function grad(ctx, y0, y1, a, b){ const g = ctx.createLinearGradient(0, y0, 0, y1); g.addColorStop(0, a); g.addColorStop(1, b); return g; }
 
-function drawKpis(ctx, st, k){
-  const y = 362, h = 158;
-  const pos = st.totalPnl > 0.0049, neg = st.totalPnl < -0.0049;
-  card(ctx, k, 70, y, 532, h, 20,
-    grad(ctx, y, y + h, pos ? '#e7f3e0' : neg ? '#fbe6e2' : '#eff1f4', pos ? '#d6eacb' : neg ? '#f5d2cc' : '#e3e7ed'),
-    pos ? 'rgba(46,138,62,0.18)' : neg ? 'rgba(193,53,43,0.18)' : 'rgba(80,90,110,0.15)');
-  ctx.fillStyle = C.ink; fit(ctx, 'Total P&L (Today)', 600, 30, 22, 450); ctx.fillText('Total P&L (Today)', 112, y + 52);
-  const valTxt = st.trades ? signedMoney(st.totalPnl, true) : '₹0';
-  const pctTxt = st.trades && st.capital > 0 ? signedPct(st.totalPct) : '0.00%';
-  ctx.font = F(600, 28); const pw = ctx.measureText(pctTxt).width + 36;
-  const vs = fit(ctx, valTxt, 700, 82, 36, 532 - 84 - pw - 22);
-  const vw = ctx.measureText(valTxt).width, base = y + 128;
-  ctx.fillStyle = pos ? C.green : neg ? C.red : C.ink; ctx.fillText(valTxt, 112, base);
-  const ph = 50, px = 112 + vw + 22, py = base - vs * 0.36 - ph / 2;
-  rr(ctx, px, py, pw, ph, 25); ctx.fillStyle = pos ? C.greenPill : neg ? C.redPill : '#6b7385'; ctx.fill();
-  ctx.fillStyle = '#ffffff'; ctx.font = F(600, 28); ctx.fillText(pctTxt, px + 18, py + ph / 2 + 10);
-
-  ctx.fillStyle = 'rgba(70,80,105,0.55)'; ctx.fillRect(635, y + 14, 2, h - 28);
-
-  card(ctx, k, 668, y, 368, h, 20, grad(ctx, y, y + h, '#ebf1fa', '#dbe6f4'), 'rgba(60,95,160,0.16)');
-  ctx.fillStyle = C.ink; fit(ctx, 'Total Capital Deployed', 600, 30, 20, 300); ctx.fillText('Total Capital Deployed', 704, y + 52);
-  const capTxt = '₹' + money(st.capital || 0);
-  fit(ctx, capTxt, 700, 82, 34, 300); ctx.fillStyle = '#13213f'; ctx.fillText(capTxt, 704, base);
+function drawStats(ctx, st){
+  const x = 64, y = 432, w = DW - 128, h = 116, cw = w / 4;
+  panel(ctx, x, y, w, h, 20, C.panel1, C.panel2);
+  const losses = st.rows.filter(r => r.pnl < 0).length;
+  const cells = ['TRADES', 'WINS / LOSSES', 'WIN RATE', 'AVG RETURN / TRADE'];
+  cells.forEach((lab, i) => {
+    const cx = x + i * cw + 28;
+    if (i) { ctx.fillStyle = C.hair; ctx.fillRect(x + i * cw, y + 22, 1.2, h - 44); }
+    label(ctx, lab, cx, y + 42, 12.5, C.muted);
+    const vy = y + 92;
+    if (i === 0) { ctx.font = F(800, 40); ctx.fillStyle = C.text; ctx.fillText(String(st.trades), cx, vy); }
+    if (i === 1) {
+      ctx.font = F(800, 40); ctx.fillStyle = st.wins ? C.up : C.text; const a = String(st.wins); ctx.fillText(a, cx, vy);
+      let px = cx + ctx.measureText(a).width; ctx.fillStyle = C.faint; ctx.font = F(700, 30); ctx.fillText(' / ', px, vy); px += ctx.measureText(' / ').width;
+      ctx.font = F(800, 40); ctx.fillStyle = losses ? C.down : C.text; ctx.fillText(String(losses), px, vy);
+    }
+    if (i === 2) {
+      const v = st.trades ? st.winRate.toFixed(1) + '%' : '—';
+      ctx.font = F(800, 40); ctx.fillStyle = C.text; ctx.fillText(v, cx, vy - 6);
+      const bw = cw - 56; rr(ctx, cx, vy + 4, bw, 6, 3); ctx.fillStyle = C.hair; ctx.fill();
+      if (st.trades) { rr(ctx, cx, vy + 4, Math.max(6, bw * st.winRate / 100), 6, 3); ctx.fillStyle = C.blue; ctx.fill(); }
+    }
+    if (i === 3) {
+      const v = st.trades ? signedPct(st.avgRet) : '—';
+      ctx.fillStyle = st.trades ? tone(st.avgRet) : C.text; fit(ctx, v, 800, 40, 24, cw - 56); ctx.fillText(v, cx, vy);
+    }
+  });
 }
 
 const COLS = {
   stocks: [
-    {label:'#',         align:'center', at:82},
-    {label:'Stock',     align:'left',   at:132},
-    {label:'Entry (₹)', align:'right',  at:462},
-    {label:'Exit (₹)',  align:'right',  at:616},
-    {label:'Qty',       align:'right',  at:702},
-    {label:'P&L (₹)',   align:'right',  at:866},
-    {label:'P&L %',     align:'right',  at:1018}
+    {label:'#', align:'center', at:100}, {label:'STOCK', align:'left', at:136},
+    {label:'ENTRY ₹', align:'right', at:530}, {label:'EXIT ₹', align:'right', at:660}, {label:'QTY', align:'right', at:748},
+    {label:'P&L ₹', align:'right', at:884}, {label:'P&L %', align:'right', at:994}
   ],
   options: [
-    {label:'#',         align:'center', at:82},
-    {label:'Contract',  align:'left',   at:132},
-    {label:'Entry (₹)', align:'right',  at:494},
-    {label:'Exit (₹)',  align:'right',  at:620},
-    {label:'Qty',       align:'right',  at:712},
-    {label:'P&L (₹)',   align:'right',  at:866},
-    {label:'P&L %',     align:'right',  at:1018}
+    {label:'#', align:'center', at:100}, {label:'CONTRACT', align:'left', at:136},
+    {label:'ENTRY ₹', align:'right', at:548}, {label:'EXIT ₹', align:'right', at:668}, {label:'QTY', align:'right', at:752},
+    {label:'P&L ₹', align:'right', at:884}, {label:'P&L %', align:'right', at:994}
   ]
 };
-function drawTable(ctx, st, L, k){
-  const x = 46, w = 996, y = L.T, hh = L.HH, rh = L.RH, h = hh + L.n * rh, tint0 = 730;
-  const opt = st.mode === 'options', cols = COLS[st.mode];
-  const f = Math.min(1, rh / 53);   // text scale when many trades make the rows slimmer
-  ctx.save(); shadow(ctx, k, 22, 7, 'rgba(30,40,70,0.13)'); rr(ctx, x, y, w, h, 16); ctx.fillStyle = '#fffdf8'; ctx.fill(); ctx.restore();
-  ctx.save(); rr(ctx, x, y, w, h, 16); ctx.clip();
-  ctx.fillStyle = grad(ctx, y, y + hh, '#1e3c74', '#142a56'); ctx.fillRect(x, y, w, hh);
-  ctx.fillStyle = '#ffffff'; ctx.font = F(600, 25);
-  for (const c of cols) txt(ctx, c.label, c.at, y + hh / 2 + 9, c.align);
-  if (!st.rows.length) {
-    const ry = y + hh; ctx.fillStyle = '#fffdf8'; ctx.fillRect(x, ry, w, rh);
-    ctx.fillStyle = '#8a8f9c'; ctx.font = F(500, 24); txt(ctx, 'No trades yet', DW / 2, ry + rh / 2 + 8, 'center');
-  }
+function drawTable(ctx, st, L){
+  const x = 64, w = DW - 128, y = L.T, hh = L.HH, rh = L.RH, h = hh + L.n * rh;
+  const opt = st.mode === 'options', cols = COLS[st.mode], f = Math.min(1, rh / 58);
+  panel(ctx, x, y, w, h, 20, C.panel1, C.panel2);
+  for (const c of cols) label(ctx, c.label, c.at, y + 31, 12.5, C.muted, c.align);
+  hairline(ctx, x + 20, x + w - 20, y + hh);
+  ctx.save(); rr(ctx, x, y, w, h, 20); ctx.clip();
+  if (!st.rows.length) { ctx.font = F(600, 20); ctx.fillStyle = C.faint; txt(ctx, 'No trades yet', DW / 2, y + hh + rh / 2 + 7, 'center'); }
   st.rows.forEach((r, i) => {
-    const ry = y + hh + i * rh, cy = ry + rh / 2 + 9 * f;
-    ctx.fillStyle = i % 2 ? '#f6f2e9' : '#fffdf8'; ctx.fillRect(x, ry, w, rh);
-    const up = r.pnl > 0, dn = r.pnl < 0;
-    ctx.fillStyle = up ? (i % 2 ? '#d9ecd1' : '#e3f1dc') : dn ? (i % 2 ? '#f6d3ce' : '#fadcd8') : '#eeece5';
-    ctx.fillRect(tint0, ry, x + w - tint0, rh);
-    if (i > 0) { ctx.fillStyle = 'rgba(120,110,85,0.16)'; ctx.fillRect(x, ry, w, 1.2); }
-    ctx.fillStyle = C.ink; ctx.font = F(500, 25 * f); txt(ctx, String(i + 1), 82, cy, 'center');
-    if (opt && rh >= 44) {
-      // contract on top, expiry · buy/sell · lots underneath
-      const f2 = Math.min(1, rh / 60), maxName = 236, ms = 15 * f2, my = ry + 49 * f2;
-      fit(ctx, r.stock, 700, 24 * f2, 14, maxName);
-      ctx.fillStyle = '#121a2b'; ctx.fillText(clip(ctx, r.stock, maxName), 132, ry + 27 * f2);
-      let mx = 132;
+    const ry = y + hh + i * rh, cy = ry + rh / 2 + 7.5 * f, col = tone(r.pnl);
+    if (i) hairline(ctx, x + 20, x + w - 20, ry);
+    rr(ctx, x + 10, ry + rh * 0.24, 4, rh * 0.52, 2); ctx.fillStyle = col === C.text ? C.faint : col; ctx.fill();
+    ctx.font = F(700, 17 * f + 1); ctx.fillStyle = C.faint; txt(ctx, String(i + 1), 100, cy, 'center');
+    if (opt && rh >= 46) {
+      const f2 = Math.min(1, rh / 64), maxName = 250;
+      ctx.fillStyle = C.text; fit(ctx, r.stock, 800, 21 * f2, 13, maxName); ctx.fillText(clip(ctx, r.stock, maxName), 136, ry + rh * 0.46);
+      let mx = 136; const my = ry + rh * 0.8;
       r.meta.forEach((m, mi) => {
-        ctx.font = F(500, ms);
-        if (mi) { ctx.fillStyle = '#9097a6'; ctx.fillText(' · ', mx, my); mx += ctx.measureText(' · ').width; }
-        ctx.fillStyle = m.sell ? '#a4501a' : '#5b6478'; ctx.font = F(m.sell ? 600 : 500, ms);
-        ctx.fillText(m.t, mx, my); mx += ctx.measureText(m.t).width;
+        ctx.font = F(m.sell ? 800 : 600, 14 * f2);
+        if (mi) { ctx.fillStyle = C.faint; ctx.fillText('  ·  ', mx, my); mx += ctx.measureText('  ·  ').width; }
+        ctx.fillStyle = m.sell ? C.amber : C.muted; ctx.fillText(m.t, mx, my); mx += ctx.measureText(m.t).width;
       });
     } else {
-      // one line: name, with a SHORT (stocks) or SELL (options) tag
-      const tag = r.side === 'S' ? (opt ? 'SELL' : 'SHORT') : '', ts = 13 * f, th = 22 * f;
-      let maxName = opt ? 236 : 188, tagW = 0;
-      if (tag) { ctx.font = F(600, ts); tagW = ctx.measureText(tag).width + 14 * f; maxName -= tagW + 8; }
-      const ns = fit(ctx, r.stock, 700, (opt ? 24 : 26) * f, 14, maxName);
-      const name = clip(ctx, r.stock, maxName);
-      ctx.fillStyle = '#121a2b'; ctx.fillText(name, 132, cy);
-      if (tagW) {
-        const nw = ctx.measureText(name).width, tx = 132 + nw + 8, ty = cy - ns * 0.36 - th / 2;
-        rr(ctx, tx, ty, tagW, th, 6 * f); ctx.fillStyle = '#fbe7d6'; ctx.fill();
-        ctx.fillStyle = '#a4501a'; ctx.font = F(600, ts); ctx.fillText(tag, tx + 7 * f, ty + th / 2 + ts * 0.36);
-      }
+      const tagTxt = r.side === 'S' ? (opt ? 'SELL' : 'SHORT') : (opt ? 'BUY' : 'LONG');
+      const tagCol = r.side === 'S' ? C.amber : C.blueLt;
+      ctx.font = F(800, 11 * f + 1); const tw = [...tagTxt].reduce((a, c) => a + ctx.measureText(c).width, 0) + 1.4 * (tagTxt.length - 1) + 16 * f;
+      const maxName = (opt ? 300 : 280) - tw - 12;
+      const ns = fit(ctx, r.stock, 800, 22 * f, 13, maxName); const name = clip(ctx, r.stock, maxName);
+      ctx.fillStyle = C.text; ctx.fillText(name, 136, cy);
+      const tx = 136 + ctx.measureText(name).width + 12, th = 22 * f, ty = cy - ns * 0.36 - th / 2;
+      rr(ctx, tx, ty, tw, th, th / 2); ctx.fillStyle = rgba(tagCol, 0.14); ctx.fill();
+      label(ctx, tagTxt, tx + tw / 2, ty + th / 2 + (11 * f + 1) * 0.36, 11 * f + 1, tagCol, 'center', 1.4);
     }
-    ctx.fillStyle = C.ink;
-    fit(ctx, price(r.entry), 400, 26 * f, 14, opt ? 118 : 140); txt(ctx, price(r.entry), cols[2].at, cy, 'right');
-    fit(ctx, price(r.exit), 400, 26 * f, 14, opt ? 112 : 140); txt(ctx, price(r.exit), cols[3].at, cy, 'right');
+    ctx.fillStyle = C.soft;
+    fit(ctx, price(r.entry), 600, 21 * f, 13, opt ? 118 : 140); txt(ctx, price(r.entry), cols[2].at, cy, 'right');
+    fit(ctx, price(r.exit), 600, 21 * f, 13, opt ? 112 : 120); txt(ctx, price(r.exit), cols[3].at, cy, 'right');
     const q = Number.isInteger(r.qty) ? fmt0.format(r.qty) : String(r.qty);
-    fit(ctx, q, 400, 26 * f, 14, opt ? 80 : 76); txt(ctx, q, cols[4].at, cy, 'right');
-    ctx.fillStyle = up ? C.green : dn ? C.red : C.ink;
-    const pTxt = signedMoney(r.pnl, false);
-    fit(ctx, pTxt, 700, 27 * f, 14, 124); txt(ctx, pTxt, 866, cy, 'right');
-    const cTxt = signedPct(r.pct);
-    fit(ctx, cTxt, 700, 27 * f, 14, 130); txt(ctx, cTxt, 1018, cy, 'right');
+    fit(ctx, q, 600, 21 * f, 13, 76); txt(ctx, q, cols[4].at, cy, 'right');
+    ctx.fillStyle = col;
+    const pTxt = signedMoney(r.pnl, false); fit(ctx, pTxt, 800, 22 * f, 13, 120); txt(ctx, pTxt, 884, cy, 'right');
+    const cTxt = signedPct(r.pct); fit(ctx, cTxt, 700, 20 * f, 13, 100); txt(ctx, cTxt, 994, cy, 'right');
   });
   ctx.restore();
 }
 
-function goldGrad(ctx, y0, y1){ const g = ctx.createLinearGradient(0, y0, 0, y1); g.addColorStop(0, '#f8da7c'); g.addColorStop(0.5, '#e2aa3b'); g.addColorStop(1, '#b67e17'); return g; }
-function icon(ctx, x, y, s, box, fn){ ctx.save(); ctx.translate(x, y); ctx.scale(s / box, s / box); fn(); ctx.restore(); }
-function iconBars(ctx, x, y, s){ icon(ctx, x, y, s, 60, () => {
-  const hs = [16, 25, 35, 46];
-  hs.forEach((h, i) => { rr(ctx, 6 + i * 13, 52 - h, 10, h, 1.5); ctx.fillStyle = goldGrad(ctx, 52 - h, 52); ctx.fill(); ctx.strokeStyle = '#9b6a12'; ctx.lineWidth = 1; ctx.stroke(); });
-}); }
-function iconTrophy(ctx, x, y, s){ icon(ctx, x, y, s, 60, () => {
-  const g = goldGrad(ctx, 6, 56);
-  ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = g; ctx.lineWidth = 4.2;
-  ctx.beginPath(); ctx.moveTo(17, 13); ctx.lineTo(9, 13); ctx.bezierCurveTo(8, 25, 13, 31, 21, 32); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(43, 13); ctx.lineTo(51, 13); ctx.bezierCurveTo(52, 25, 47, 31, 39, 32); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(15, 8); ctx.lineTo(45, 8); ctx.lineTo(45, 20); ctx.bezierCurveTo(45, 31, 38, 38, 30, 38); ctx.bezierCurveTo(22, 38, 15, 31, 15, 20); ctx.closePath();
-  ctx.fillStyle = g; ctx.fill(); ctx.strokeStyle = '#9b6a12'; ctx.lineWidth = 1.4; ctx.stroke();
-  rr(ctx, 13, 5, 34, 5, 2); ctx.fillStyle = g; ctx.fill(); ctx.stroke();
-  ctx.fillStyle = 'rgba(255,255,255,0.45)'; ctx.beginPath(); ctx.ellipse(23, 20, 3, 8, 0, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = g; ctx.fillRect(27, 37, 6, 8);
-  rr(ctx, 20, 44, 20, 5, 2); ctx.fill(); ctx.stroke();
-  rr(ctx, 15, 49, 30, 7, 2); ctx.fill(); ctx.stroke();
-}); }
-function iconTarget(ctx, x, y, s){ icon(ctx, x, y, s, 60, () => {
-  const cx = 27, cy = 33, g = goldGrad(ctx, 10, 56);
-  ctx.strokeStyle = g; ctx.lineWidth = 5;
-  ctx.beginPath(); ctx.arc(cx, cy, 21, 0, Math.PI * 2); ctx.stroke();
-  ctx.beginPath(); ctx.arc(cx, cy, 12, 0, Math.PI * 2); ctx.stroke();
-  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, 5, 0, Math.PI * 2); ctx.fill();
-  ctx.strokeStyle = '#7d5612'; ctx.lineWidth = 3; ctx.lineCap = 'round'; line(ctx, cx, cy, 50, 10);
-  ctx.lineWidth = 2.6; line(ctx, 50, 10, 58, 9); line(ctx, 50, 10, 51, 2); line(ctx, 46, 14, 54, 13); line(ctx, 46, 14, 47, 6);
-}); }
-function coin(ctx, cx, cy, rx, ry, th){
-  ctx.beginPath(); ctx.moveTo(cx - rx, cy); ctx.lineTo(cx - rx, cy + th); ctx.ellipse(cx, cy + th, rx, ry, 0, Math.PI, 0, true); ctx.lineTo(cx + rx, cy); ctx.closePath();
-  ctx.fillStyle = '#c8901f'; ctx.fill(); ctx.strokeStyle = '#8a5d0f'; ctx.lineWidth = 1.2; ctx.stroke();
-  ctx.beginPath(); ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2); ctx.fillStyle = grad(ctx, cy - ry, cy + ry, '#fae08e', '#e2a93a'); ctx.fill(); ctx.stroke();
-  ctx.beginPath(); ctx.ellipse(cx, cy, rx * 0.62, ry * 0.62, 0, 0, Math.PI * 2); ctx.strokeStyle = 'rgba(140,95,15,0.55)'; ctx.lineWidth = 1; ctx.stroke();
-}
-function iconCoins(ctx, x, y, s){ icon(ctx, x, y, s, 60, () => {
-  [47, 40, 33].forEach(cy => coin(ctx, 41, cy, 13, 4.8, 6));
-  [48, 41, 34, 27, 20].forEach(cy => coin(ctx, 20, cy, 14, 5.2, 6));
-}); }
-function iconBrain(ctx, x, y, s){ icon(ctx, x, y, s, 50, () => {
-  ctx.lineWidth = 2.6; ctx.strokeStyle = '#1c2f5a'; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
-  for (const m of [1, -1]) {
-    ctx.save(); if (m < 0) { ctx.translate(50, 0); ctx.scale(-1, 1); }
-    ctx.beginPath(); ctx.moveTo(25, 9); ctx.bezierCurveTo(22, 4, 15, 4, 13, 9); ctx.bezierCurveTo(8, 9, 5, 14, 7, 19);
-    ctx.bezierCurveTo(2, 22, 2, 30, 7, 33); ctx.bezierCurveTo(6, 39, 11, 43, 16, 42); ctx.bezierCurveTo(18, 46, 23, 47, 25, 44);
-    ctx.fillStyle = '#f6f9fd'; ctx.fill(); ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(13, 9); ctx.bezierCurveTo(14, 13, 17, 15, 20, 15);
-    ctx.moveTo(7, 19); ctx.bezierCurveTo(10, 22, 14, 22, 16, 20);
-    ctx.moveTo(7, 33); ctx.bezierCurveTo(10, 30, 15, 30, 17, 33);
-    ctx.moveTo(16, 42); ctx.bezierCurveTo(16, 38, 19, 36, 22, 36);
-    ctx.moveTo(19, 26); ctx.bezierCurveTo(21, 24, 23, 25, 25, 26);
-    ctx.stroke(); ctx.restore();
-  }
-  line(ctx, 25, 9, 25, 44);
-}); }
-function iconCheck(ctx, x, y, s){ icon(ctx, x, y, s, 30, () => {
-  ctx.lineWidth = 2.6; ctx.strokeStyle = C.check; rr(ctx, 2, 4, 24, 24, 5); ctx.fillStyle = 'rgba(255,255,255,0.75)'; ctx.fill(); ctx.stroke();
-  ctx.lineWidth = 3.4; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-  ctx.beginPath(); ctx.moveTo(8, 16); ctx.lineTo(13, 21); ctx.lineTo(27, 5); ctx.stroke();
-}); }
-function paperclip(ctx, x, y, s){
-  ctx.save(); ctx.translate(x, y); ctx.rotate(-0.36); ctx.scale(s / 76, s / 76);
-  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-  const p = () => { ctx.beginPath(); ctx.moveTo(8, 26); ctx.lineTo(8, 60); ctx.arc(12, 60, 4, Math.PI, 0, true); ctx.lineTo(16, 14);
-    ctx.arc(10, 14, 6, 0, Math.PI, true); ctx.lineTo(4, 66); ctx.arc(12, 66, 8, Math.PI, 0, true); ctx.lineTo(20, 20); };
-  shadow(ctx, 1, 0, 0, 'rgba(0,0,0,0)');
-  p(); ctx.strokeStyle = '#7e8796'; ctx.lineWidth = 3.4; ctx.stroke();
-  p(); ctx.strokeStyle = 'rgba(235,240,246,0.85)'; ctx.lineWidth = 1; ctx.stroke();
+function check(ctx, x, y, s){
+  ctx.save(); ctx.translate(x, y); ctx.scale(s / 24, s / 24);
+  ctx.beginPath(); ctx.arc(12, 12, 11, 0, Math.PI * 2); ctx.fillStyle = 'rgba(47,107,255,0.22)'; ctx.fill();
+  ctx.strokeStyle = C.blueLt; ctx.lineWidth = 2.6; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.beginPath(); ctx.moveTo(7, 12.5); ctx.lineTo(10.5, 16); ctx.lineTo(17, 8.5); ctx.stroke();
   ctx.restore();
-}
-
-function measureList(ctx, items, area, o, s){
-  ctx.font = F(o.weight, s, o.fam);
-  const indent = o.marker === 'check' ? s * 1.55 : s * 0.8, lh = s * o.lh, gap = s * 0.28;
-  const blocks = items.map(t => wrap(ctx, t, area.w - indent));
-  const total = blocks.reduce((a, b) => a + b.length * lh, 0) + gap * Math.max(0, blocks.length - 1);
-  return {s, indent, lh, gap, blocks, total};
 }
 function drawList(ctx, items, area, o){
   if (!items.length) return false;
   let m = null;
-  for (let s = o.max; s >= o.min; s--) { m = measureList(ctx, items, area, o, s); if (m.total <= area.h) break; }
-  ctx.save(); ctx.beginPath(); ctx.rect(area.x - 40, area.y - 12, area.w + 60, area.h + 16); ctx.clip();
-  ctx.font = F(o.weight, m.s, o.fam); ctx.fillStyle = o.color;
-  let yb = area.y + m.s * 0.98;
+  for (let s = o.max; s >= o.min; s--) {
+    ctx.font = F(o.weight, s);
+    const indent = o.marker === 'check' ? s * 1.6 : s * 1.0, lh = s * 1.42, gap = s * 0.42;
+    const blocks = items.map(t => wrap(ctx, t, area.w - indent));
+    const total = blocks.reduce((a, b) => a + b.length * lh, 0) + gap * Math.max(0, blocks.length - 1);
+    m = {s, indent, lh, gap, blocks, total};
+    if (total <= area.h) break;
+  }
+  ctx.save(); ctx.beginPath(); ctx.rect(area.x - 10, area.y - 8, area.w + 20, area.h + 12); ctx.clip();
+  let yb = area.y + m.s * 0.95;
   m.blocks.forEach(lines => {
-    if (o.marker === 'check') iconCheck(ctx, area.x, yb - m.s * 0.98, m.s * 1.1);
-    else { ctx.beginPath(); ctx.arc(area.x + m.s * 0.2, yb - m.s * 0.3, m.s * 0.12, 0, Math.PI * 2); ctx.fill(); }
-    ctx.font = F(o.weight, m.s, o.fam); ctx.fillStyle = o.color;
+    if (o.marker === 'check') check(ctx, area.x, yb - m.s * 0.92, m.s * 1.08);
+    else { rr(ctx, area.x + 2, yb - m.s * 0.42, m.s * 0.3, m.s * 0.3, 2); ctx.fillStyle = C.blue; ctx.fill(); }
+    ctx.font = F(o.weight, m.s); ctx.fillStyle = C.soft;
     lines.forEach(ln => { ctx.fillText(ln, area.x + m.indent, yb); yb += m.lh; });
     yb += m.gap;
   });
   ctx.restore();
   return m.total > area.h;
 }
-
-function drawStats(ctx, st, L, k){
-  const x = 46, w = 996, y = L.S, h = 120;
-  ctx.save(); shadow(ctx, k, 16, 5, 'rgba(30,40,70,0.10)'); rr(ctx, x, y, w, h, 18); ctx.fillStyle = '#f9f7f2'; ctx.fill(); ctx.restore();
-  rr(ctx, x + .75, y + .75, w - 1.5, h - 1.5, 18); ctx.strokeStyle = 'rgba(120,110,85,0.20)'; ctx.lineWidth = 1.5; ctx.stroke();
-  const segs = [[46, 275], [275, 482], [482, 730], [730, 1042]];
-  const ar = st.avgRet;
-  const items = [
-    [iconBars, 'Trades', String(st.trades), C.ink],
-    [iconTrophy, 'Wins', String(st.wins), C.ink],
-    [iconTarget, 'Win Rate', st.trades ? st.winRate.toFixed(1) + '%' : '—', C.ink],
-    [iconCoins, 'Avg. Return/Trade', st.trades ? signedPct(ar) : '—', !st.trades ? C.ink : ar > 0.0049 ? C.green : ar < -0.0049 ? C.red : C.ink]
-  ];
-  items.forEach(([ic, label, value, col], i) => {
-    const [a, b] = segs[i], ix = a + (i === 3 ? 30 : 38);
-    ic(ctx, ix, y + 30, 60);
-    const tx = ix + 60 + 16, maxW = b - tx - 16;
-    ctx.fillStyle = C.sub; fit(ctx, label, 500, 24, 15, maxW); ctx.fillText(label, tx, y + 46);
-    ctx.fillStyle = col; fit(ctx, value, 700, 42, 22, maxW); ctx.fillText(value, tx, y + 94);
-    if (i > 0) { ctx.fillStyle = 'rgba(120,110,85,0.28)'; ctx.fillRect(a - 1, y + 22, 2, h - 44); }
-  });
+function sectionHead(ctx, x, y, text, icon){
+  if (icon === 'spark') {
+    ctx.save(); ctx.translate(x + 9, y - 6); ctx.fillStyle = C.blueLt; ctx.beginPath();
+    ctx.moveTo(0, -10); ctx.quadraticCurveTo(1.6, -1.6, 10, 0); ctx.quadraticCurveTo(1.6, 1.6, 0, 10); ctx.quadraticCurveTo(-1.6, 1.6, -10, 0); ctx.quadraticCurveTo(-1.6, -1.6, 0, -10); ctx.fill(); ctx.restore();
+  } else { rr(ctx, x + 2, y - 14, 14, 14, 3); ctx.fillStyle = C.blue; ctx.fill(); }
+  label(ctx, text, x + 30, y, 13.5, C.blueLt);
 }
-
-function drawNotes(ctx, st, L, k){
-  const w = 448, h = L.notesH, cx = 52 + w / 2, cy = L.B + h / 2;
-  ctx.save(); ctx.translate(cx, cy); ctx.rotate(-0.022);
-  const X = -w / 2, Y = -h / 2;
-  shadow(ctx, k, 20, 9, 'rgba(85,62,18,0.25)');
-  const sheet = () => { ctx.beginPath(); ctx.moveTo(X, Y); ctx.lineTo(X + w, Y + 2); ctx.lineTo(X + w - 2, Y + h); ctx.quadraticCurveTo(X + w * 0.5, Y + h - 7, X + 2, Y + h + 2); ctx.closePath(); };
-  sheet(); const g = ctx.createLinearGradient(X, Y, X + w, Y + h); g.addColorStop(0, '#fcefb6'); g.addColorStop(1, '#f1d98a'); ctx.fillStyle = g; ctx.fill();
-  noShadow(ctx);
-  sheet(); ctx.globalAlpha = 0.6; ctx.fillStyle = paperPattern(ctx); ctx.fill(); ctx.globalAlpha = 1;
-  ctx.fillStyle = C.ink; ctx.font = F(700, 42, 'hand'); ctx.fillText("Today's Notes", X + 46, Y + 72);
-  const hw = ctx.measureText("Today's Notes").width;
-  ctx.strokeStyle = '#efb42a'; ctx.lineWidth = 6; ctx.lineCap = 'round';
-  ctx.beginPath(); ctx.moveTo(X + 44, Y + 88); ctx.quadraticCurveTo(X + 46 + hw / 2, Y + 94, X + 52 + hw, Y + 84); ctx.stroke(); ctx.lineCap = 'butt';
-  const over = drawList(ctx, st.notes, {x: X + 50, y: Y + 112, w: w - 50 - 30, h: h - 112 - 24},
-    {fam:'hand', weight:400, max:32, min:20, lh:1.32, color:C.ink, marker:'dot'});
-  paperclip(ctx, X + 16, Y - 30, 82);
-  ctx.restore();
-  return over;
+function drawNotes(ctx, st, L){
+  const x = 64, y = L.B, w = 467, h = L.notesH;
+  panel(ctx, x, y, w, h, 20, C.panel1, C.panel2);
+  sectionHead(ctx, x + 28, y + 44, "TODAY'S NOTES", 'square');
+  hairline(ctx, x + 28, x + w - 28, y + 66);
+  return drawList(ctx, st.notes, {x: x + 28, y: y + 88, w: w - 56, h: h - 88 - 22}, {weight: 600, max: 22, min: 15, marker: 'dot'});
 }
-function drawPowered(ctx, st, L, k){
-  const x = 522, y = L.B + 10, w = 526, h = L.notesH - 20;
-  card(ctx, k, x, y, w, h, 24, grad(ctx, y, y + h, '#edf3fb', '#e0e9f6'), 'rgba(70,110,175,0.25)');
-  iconBrain(ctx, x + 30, y + 24, 52);
-  const lead = 'Powered by ', strong = 'Human + AI';
-  let s1 = 28, s2 = 34;
-  const widthAt = f => { ctx.font = F(500, s1 * f); const a = ctx.measureText(lead).width; ctx.font = F(700, s2 * f); return a + ctx.measureText(strong).width; };
-  let f = 1; while (f > 0.6 && widthAt(f) > w - 96 - 24) f -= 0.02;
-  ctx.font = F(500, s1 * f); ctx.fillStyle = C.ink; ctx.fillText(lead, x + 96, y + 62);
-  const lw = ctx.measureText(lead).width;
-  ctx.font = F(700, s2 * f); ctx.fillStyle = '#15284f'; ctx.fillText(strong, x + 96 + lw, y + 62);
-  ctx.fillStyle = 'rgba(70,110,175,0.25)'; ctx.fillRect(x + 22, y + 94, w - 44, 1.5);
-  const over = drawList(ctx, st.powered, {x: x + 30, y: y + 114, w: w - 30 - 26, h: h - 114 - 34},
-    {fam:0, weight:400, max:25, min:17, lh:1.42, color:C.ink, marker:'check'});
-  ctx.strokeStyle = '#2f5fc4'; ctx.lineWidth = 3; ctx.lineCap = 'round';
-  ctx.beginPath(); ctx.moveTo(x + w * 0.44, y + h - 18); ctx.quadraticCurveTo(x + w * 0.7, y + h - 26, x + w - 40, y + h - 22); ctx.stroke(); ctx.lineCap = 'butt';
-  return over;
+function drawPowered(ctx, st, L){
+  const x = 555, y = L.B, w = DW - 64 - 555, h = L.notesH;
+  panel(ctx, x, y, w, h, 20, C.panel1, C.panel2);
+  sectionHead(ctx, x + 28, y + 44, 'POWERED BY HUMAN + AI', 'spark');
+  hairline(ctx, x + 28, x + w - 28, y + 66);
+  return drawList(ctx, st.powered, {x: x + 28, y: y + 88, w: w - 56, h: h - 88 - 22}, {weight: 600, max: 21, min: 15, marker: 'check'});
+}
+function drawFooter(ctx, L){
+  hairline(ctx, 64, DW - 64, L.FOOT);
+  const y = L.FOOT + 52;
+  logoTile(ctx, 64, y - 25, 32);
+  ctx.font = F(800, 21); ctx.fillStyle = C.text; ctx.fillText('swing', 108, y - 2);
+  const w = ctx.measureText('swing').width; ctx.fillStyle = C.blueLt; ctx.fillText('x', 109 + w, y - 2);
+  const w2 = ctx.measureText('x').width;
+  ctx.font = F(600, 16); ctx.fillStyle = C.muted; ctx.fillText('·  The Daily 1% Club', 122 + w + w2, y - 3);
+  ctx.font = F(600, 15); ctx.fillStyle = C.faint; txt(ctx, 'Personal trading journal  ·  Not investment advice', DW - 64, y - 3, 'right');
 }
 
 /* ---------- fonts ---------- */
-const FONT_FACES = ['400','500','600','700','800'].map(w => w + ' 32px Poppins').concat(['italic 800 32px Poppins', '400 32px Kalam', '700 32px Kalam']);
+const FONT_FACES = ['500','600','700','800'].map(w => w + ' 32px Manrope');
 const fontsReady = (document.fonts && document.fonts.load)
-  ? Promise.all(FONT_FACES.map(f => document.fonts.load(f, "Aa1%₹−'").catch(() => []))).catch(() => {})
+  ? Promise.all(FONT_FACES.map(f => document.fonts.load(f, "Aa1%₹−·'").catch(() => []))).catch(() => {})
   : Promise.resolve();
 
 /* ---------- editor ---------- */
