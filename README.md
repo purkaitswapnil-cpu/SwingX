@@ -5,7 +5,7 @@ A one-page tool for SwingX's daily trading journal cards, with two journals on t
 - **Stocks:** stock, long or short, entry, exit and quantity.
 - **Options:** underlying, strike, CE or PE, buy or sell, expiry, entry and exit premium, lots and lot size.
 
-P&L, P&L %, win rate, average return per trade and total P&L are calculated, and the card downloads as a PNG 1080, 2160 or 3240 px wide. Link straight to a journal with `#stocks` or `#options` at the end of the address.
+P&L, P&L %, win rate, average return per trade and total P&L are calculated, and the card downloads as a PNG. The card is always 3:4 portrait (1080 × 1440, 2160 × 2880 or 3240 × 4320) however many trades it holds: with few trades the notes boxes get more room, with many the table rows get slimmer. Link straight to a journal with `#stocks` or `#options` at the end of the address.
 
 **Live site:** https://purkaitswapnil-cpu.github.io/SwingX/ (GitHub Pages, served from the `gh-pages` branch)
 

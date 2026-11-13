@@ -212,11 +212,11 @@ input.bad{border-color:var(--loss)}
         <div class="canvas-box"><canvas id="card" role="img" aria-label="Journal card preview"></canvas></div>
         <div class="export">
           <fieldset class="sizes">
-            <legend>Width</legend>
+            <legend>Size</legend>
             <span class="opts">
-              <label><input type="radio" name="size" id="size-1" value="1"><span>1080 px</span></label>
-              <label><input type="radio" name="size" id="size-2" value="2"><span>2160 px</span></label>
-              <label><input type="radio" name="size" id="size-3" value="3"><span>3240 px</span></label>
+              <label><input type="radio" name="size" id="size-1" value="1"><span>1080 × 1440</span></label>
+              <label><input type="radio" name="size" id="size-2" value="2"><span>2160 × 2880</span></label>
+              <label><input type="radio" name="size" id="size-3" value="3"><span>3240 × 4320</span></label>
             </span>
           </fieldset>
           <button type="button" class="btn primary" id="download">
@@ -450,14 +450,22 @@ IMG.gateway.src = 'gateway.webp';
 IMG.howrah.src = 'howrah.webp';
 const imgReady = Promise.all(Object.values(IMG).map(im => im.decode ? im.decode().catch(() => {}) : new Promise(r => { im.onload = im.onerror = r; })));
 
+// The card is always 3:4 (1086 × 1448 design units → 1080 × 1440 px at 1×), whatever the trade count.
+// Rows keep their natural height while the notes keep room to write; with many trades the notes shrink
+// first, then the rows. With few trades the notes grow and the spare space goes into the gaps.
+const DH = 1448;
 function layout(st){
-  const n = Math.max(1, st.rows.length);
-  const T = 551, HH = 58, RH = st.mode === 'options' ? 60 : 53;
-  const tableBottom = T + HH + n * RH;
-  const S = tableBottom + 30;
-  const B = S + 120 + 42;
-  const notesH = 300;
-  return {T, HH, RH, n, S, B, notesH, H: B + notesH + 72};
+  const n = Math.max(1, st.rows.length), opt = st.mode === 'options';
+  const T = 551, HH = 58, STATS = 120, BOTTOM = 72;
+  let g1 = 30, g2 = 42;
+  const avail = DH - (T + HH + g1 + STATS + g2 + BOTTOM);   // shared by table rows and the notes row
+  const pref = opt ? 60 : 53, minRH = 30, NOTES_SOFT = 220, NOTES_MIN = 170, NOTES_MAX = 440;
+  let RH = pref, notesH = avail - n * RH;
+  if (notesH < NOTES_SOFT) { RH = Math.max(minRH, (avail - NOTES_SOFT) / n); notesH = avail - n * RH; }
+  if (notesH < NOTES_MIN) { notesH = NOTES_MIN; RH = (avail - NOTES_MIN) / n; }
+  if (notesH > NOTES_MAX) { const extra = notesH - NOTES_MAX; notesH = NOTES_MAX; g1 += extra / 2; g2 += extra / 2; }
+  const S = T + HH + n * RH + g1, B = S + STATS + g2;
+  return {T, HH, RH, n, S, B, notesH, H: DH};
 }
 
 function draw(ctx, st, L, k){
@@ -635,6 +643,7 @@ const COLS = {
 function drawTable(ctx, st, L, k){
   const x = 46, w = 996, y = L.T, hh = L.HH, rh = L.RH, h = hh + L.n * rh, tint0 = 730;
   const opt = st.mode === 'options', cols = COLS[st.mode];
+  const f = Math.min(1, rh / 53);   // text scale when many trades make the rows slimmer
   ctx.save(); shadow(ctx, k, 22, 7, 'rgba(30,40,70,0.13)'); rr(ctx, x, y, w, h, 16); ctx.fillStyle = '#fffdf8'; ctx.fill(); ctx.restore();
   ctx.save(); rr(ctx, x, y, w, h, 16); ctx.clip();
   ctx.fillStyle = grad(ctx, y, y + hh, '#1e3c74', '#142a56'); ctx.fillRect(x, y, w, hh);
@@ -645,47 +654,49 @@ function drawTable(ctx, st, L, k){
     ctx.fillStyle = '#8a8f9c'; ctx.font = F(500, 24); txt(ctx, 'No trades yet', DW / 2, ry + rh / 2 + 8, 'center');
   }
   st.rows.forEach((r, i) => {
-    const ry = y + hh + i * rh, cy = ry + rh / 2 + 9;
+    const ry = y + hh + i * rh, cy = ry + rh / 2 + 9 * f;
     ctx.fillStyle = i % 2 ? '#f6f2e9' : '#fffdf8'; ctx.fillRect(x, ry, w, rh);
     const up = r.pnl > 0, dn = r.pnl < 0;
     ctx.fillStyle = up ? (i % 2 ? '#d9ecd1' : '#e3f1dc') : dn ? (i % 2 ? '#f6d3ce' : '#fadcd8') : '#eeece5';
     ctx.fillRect(tint0, ry, x + w - tint0, rh);
     if (i > 0) { ctx.fillStyle = 'rgba(120,110,85,0.16)'; ctx.fillRect(x, ry, w, 1.2); }
-    ctx.fillStyle = C.ink; ctx.font = F(500, 25); txt(ctx, String(i + 1), 82, cy, 'center');
-    if (opt) {
+    ctx.fillStyle = C.ink; ctx.font = F(500, 25 * f); txt(ctx, String(i + 1), 82, cy, 'center');
+    if (opt && rh >= 44) {
       // contract on top, expiry · buy/sell · lots underneath
-      const maxName = 236;
-      fit(ctx, r.stock, 700, 24, 16, maxName);
-      ctx.fillStyle = '#121a2b'; ctx.fillText(clip(ctx, r.stock, maxName), 132, ry + 27);
-      ctx.font = F(500, 15); let mx = 132;
+      const f2 = Math.min(1, rh / 60), maxName = 236, ms = 15 * f2, my = ry + 49 * f2;
+      fit(ctx, r.stock, 700, 24 * f2, 14, maxName);
+      ctx.fillStyle = '#121a2b'; ctx.fillText(clip(ctx, r.stock, maxName), 132, ry + 27 * f2);
+      let mx = 132;
       r.meta.forEach((m, mi) => {
-        if (mi) { ctx.fillStyle = '#9097a6'; ctx.fillText(' · ', mx, ry + 49); mx += ctx.measureText(' · ').width; }
-        ctx.fillStyle = m.sell ? '#a4501a' : '#5b6478'; ctx.font = F(m.sell ? 600 : 500, 15);
-        ctx.fillText(m.t, mx, ry + 49); mx += ctx.measureText(m.t).width; ctx.font = F(500, 15);
+        ctx.font = F(500, ms);
+        if (mi) { ctx.fillStyle = '#9097a6'; ctx.fillText(' · ', mx, my); mx += ctx.measureText(' · ').width; }
+        ctx.fillStyle = m.sell ? '#a4501a' : '#5b6478'; ctx.font = F(m.sell ? 600 : 500, ms);
+        ctx.fillText(m.t, mx, my); mx += ctx.measureText(m.t).width;
       });
     } else {
-      // stock name, with a SHORT tag for short trades
-      let maxName = 188, tagW = 0;
-      if (r.side === 'S') { ctx.font = F(600, 13); tagW = ctx.measureText('SHORT').width + 14; maxName -= tagW + 8; }
-      const ns = fit(ctx, r.stock, 700, 26, 19, maxName);
+      // one line: name, with a SHORT (stocks) or SELL (options) tag
+      const tag = r.side === 'S' ? (opt ? 'SELL' : 'SHORT') : '', ts = 13 * f, th = 22 * f;
+      let maxName = opt ? 236 : 188, tagW = 0;
+      if (tag) { ctx.font = F(600, ts); tagW = ctx.measureText(tag).width + 14 * f; maxName -= tagW + 8; }
+      const ns = fit(ctx, r.stock, 700, (opt ? 24 : 26) * f, 14, maxName);
       const name = clip(ctx, r.stock, maxName);
       ctx.fillStyle = '#121a2b'; ctx.fillText(name, 132, cy);
       if (tagW) {
-        const nw = ctx.measureText(name).width, tx = 132 + nw + 8, ty = cy - ns * 0.36 - 11;
-        rr(ctx, tx, ty, tagW, 22, 6); ctx.fillStyle = '#fbe7d6'; ctx.fill();
-        ctx.fillStyle = '#a4501a'; ctx.font = F(600, 13); ctx.fillText('SHORT', tx + 7, ty + 15.5);
+        const nw = ctx.measureText(name).width, tx = 132 + nw + 8, ty = cy - ns * 0.36 - th / 2;
+        rr(ctx, tx, ty, tagW, th, 6 * f); ctx.fillStyle = '#fbe7d6'; ctx.fill();
+        ctx.fillStyle = '#a4501a'; ctx.font = F(600, ts); ctx.fillText(tag, tx + 7 * f, ty + th / 2 + ts * 0.36);
       }
     }
     ctx.fillStyle = C.ink;
-    fit(ctx, price(r.entry), 400, 26, 18, opt ? 118 : 140); txt(ctx, price(r.entry), cols[2].at, cy, 'right');
-    fit(ctx, price(r.exit), 400, 26, 18, opt ? 112 : 140); txt(ctx, price(r.exit), cols[3].at, cy, 'right');
+    fit(ctx, price(r.entry), 400, 26 * f, 14, opt ? 118 : 140); txt(ctx, price(r.entry), cols[2].at, cy, 'right');
+    fit(ctx, price(r.exit), 400, 26 * f, 14, opt ? 112 : 140); txt(ctx, price(r.exit), cols[3].at, cy, 'right');
     const q = Number.isInteger(r.qty) ? fmt0.format(r.qty) : String(r.qty);
-    fit(ctx, q, 400, 26, 18, opt ? 80 : 76); txt(ctx, q, cols[4].at, cy, 'right');
+    fit(ctx, q, 400, 26 * f, 14, opt ? 80 : 76); txt(ctx, q, cols[4].at, cy, 'right');
     ctx.fillStyle = up ? C.green : dn ? C.red : C.ink;
     const pTxt = signedMoney(r.pnl, false);
-    fit(ctx, pTxt, 700, 27, 18, 124); txt(ctx, pTxt, 866, cy, 'right');
+    fit(ctx, pTxt, 700, 27 * f, 14, 124); txt(ctx, pTxt, 866, cy, 'right');
     const cTxt = signedPct(r.pct);
-    fit(ctx, cTxt, 700, 27, 18, 130); txt(ctx, cTxt, 1018, cy, 'right');
+    fit(ctx, cTxt, 700, 27 * f, 14, 130); txt(ctx, cTxt, 1018, cy, 'right');
   });
   ctx.restore();
 }
@@ -1147,7 +1158,7 @@ $('download').addEventListener('click', async () => {
       else { showSheet(blob, label); setStatus('Image ready: ' + w + ' × ' + h + ' px.'); }
     }
   } catch (err) {
-    setStatus("The image couldn't be created. Try the 1080 px size.");
+    setStatus("The image couldn't be created. Try the 1080 × 1440 size.");
   } finally { btn.disabled = false; }
 });
 
