@@ -77,6 +77,19 @@ input.bad{border-color:var(--loss)}
 .t-out.gain{color:var(--gain)} .t-out.loss{color:var(--loss)}
 .t-out.idle{color:var(--muted);font:500 12px/1.3 var(--body);white-space:normal}
 @media (max-width:540px){.nums{grid-template-columns:repeat(3,minmax(0,1fr))}.t-out{grid-column:1 / -1;text-align:left;padding:0}}
+.modebar{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;background:var(--panel);border:1px solid var(--line);border-radius:12px}
+.modebar button{font:600 15px var(--display);border:0;border-radius:9px;padding:10px 12px;background:transparent;color:var(--muted);cursor:pointer}
+.modebar button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.trade.opt{grid-template-columns:22px minmax(0,1fr) 34px}
+.trade.opt .t-del{align-self:start}
+.contract{display:flex;flex-wrap:wrap;gap:8px;align-items:center;min-width:0}
+.contract .t-stock{flex:2 1 120px;min-width:0;width:auto}
+.contract .t-strike{flex:1 1 80px;min-width:0;width:auto}
+.contract .seg{flex:none}
+.nums.opt{grid-template-columns:minmax(0,1.75fr) repeat(4,minmax(0,1fr))}
+.nums.opt input[type=date]{font-size:14px;padding-inline:8px}
+.nums.opt .t-out{grid-column:1 / -1;text-align:right;padding:0}
+@media (max-width:540px){.nums.opt{grid-template-columns:repeat(2,minmax(0,1fr))}.nums.opt .fld:first-child{grid-column:1 / -1}}
 .btn{font:600 14px var(--display);border-radius:10px;padding:9px 16px;border:1px solid var(--line);background:var(--field);color:var(--ink);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px}
 .btn.primary{background:var(--accent);color:var(--accent-ink);border-color:transparent}
 .btn.ghost{background:transparent}
@@ -117,7 +130,7 @@ input.bad{border-color:var(--loss)}
 .sheet-card p{margin:0;color:var(--muted);font-size:13.5px}
 .sheet-card img{width:100%;height:auto;border-radius:8px;border:1px solid var(--line)}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
-@media (prefers-reduced-motion:no-preference){.btn,.seg button,.t-del{transition:background-color .15s,color .15s,border-color .15s}}
+@media (prefers-reduced-motion:no-preference){.btn,.seg button,.t-del,.modebar button{transition:background-color .15s,color .15s,border-color .15s}}
 </style>
 
 <div class="wrap">
@@ -131,6 +144,10 @@ input.bad{border-color:var(--loss)}
 
   <main class="grid">
     <section class="editor" aria-label="Journal details">
+      <div class="modebar" id="modebar" role="group" aria-label="Journal">
+        <button type="button" data-mode="stocks" aria-pressed="true">Stocks</button>
+        <button type="button" data-mode="options" aria-pressed="false">Options</button>
+      </div>
       <div class="panel">
         <h2>The day</h2>
         <div class="row2">
@@ -142,7 +159,7 @@ input.bad{border-color:var(--loss)}
       <div class="panel">
         <h2>Trades <small id="trade-count"></small></h2>
         <div class="sample" id="sample-note" hidden>
-          <span><b>Sample trades from your design.</b> Replace them with today's, or press New day below to start blank.</span>
+          <span><b>Example trades.</b> Replace them with today's, or press New day below to start blank.</span>
         </div>
         <div class="trades" id="trades"></div>
         <div class="btn-row">
@@ -157,15 +174,15 @@ input.bad{border-color:var(--loss)}
       <div class="panel">
         <h2>Total capital deployed</h2>
         <div class="cap">
-          <label class="opt"><input type="radio" name="cap" id="cap-auto" value="auto"> <span>Entry × qty, summed: <b id="cap-auto-val">₹0</b></span></label>
+          <label class="opt"><input type="radio" name="cap" id="cap-auto" value="auto"> <span><span id="cap-auto-label">Entry × qty, summed:</span> <b id="cap-auto-val">₹0</b></span></label>
           <label class="opt"><input type="radio" name="cap" id="cap-manual" value="manual"> <span>Enter an amount</span></label>
           <div class="manual"><span>₹</span><input type="text" id="f-capital" inputmode="decimal" placeholder="5,10,000" aria-label="Capital deployed in rupees"></div>
         </div>
-        <p class="hint">Total P&amp;L % on the card is total P&amp;L ÷ this amount.</p>
+        <p class="hint" id="cap-hint">Total P&amp;L % on the card is total P&amp;L ÷ this amount.</p>
       </div>
 
       <div class="panel notes">
-        <h2>Today's notes <small>Optional. Leave blank to keep the space empty.</small></h2>
+        <h2>Today's notes <small>Optional, separate for each journal. Leave blank to keep the space empty.</small></h2>
         <div class="lines" id="notes"></div>
       </div>
 
@@ -178,12 +195,12 @@ input.bad{border-color:var(--loss)}
         <div class="nd-main">
           <div>
             <h2>Start a new day</h2>
-            <p class="hint">Clears trades and notes and sets today's date. Subtitle, capital setting and Human + AI lines stay.</p>
+            <p class="hint">Clears trades and notes in both journals and sets today's date. Subtitles, capital settings and Human + AI lines stay.</p>
           </div>
           <button type="button" class="btn" id="nd-btn">New day</button>
         </div>
         <div class="nd-confirm" id="nd-confirm" hidden>
-          <span>Clear today's trades and notes?</span>
+          <span>Clear the stock and options trades and notes?</span>
           <button type="button" class="btn primary" id="nd-yes">Clear and start</button>
           <button type="button" class="btn ghost" id="nd-no">Keep them</button>
         </div>
@@ -227,38 +244,72 @@ input.bad{border-color:var(--loss)}
 'use strict';
 
 /* ---------- state ---------- */
-const KEY = 'daily1pct.journal.v1';
+const KEY = 'swingx.journal.v2', OLD_KEY = 'daily1pct.journal.v1';
 const MAX_TRADES = 12;
 const NOTE_LINES = 4, POWER_LINES = 3;
+const MODES = ['stocks', 'options'];
+const SUBTITLE = {stocks: 'Trading Journal – Stocks', options: 'Trading Journal – Options'};
 
 function todayISO(){
   const d = new Date();
   return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 }
-function sampleState(){
-  const t = (id, stock, entry, exit, qty) => ({id, stock, side:'L', entry, exit, qty});
+function blankTrade(mode, id){
+  return mode === 'options'
+    ? {id, und:'', strike:'', opt:'CE', side:'L', expiry:'', entry:'', exit:'', lots:'1', lotSize:''}
+    : {id, stock:'', side:'L', entry:'', exit:'', qty:''};
+}
+function sampleJournal(mode){
+  const base = {subtitle: SUBTITLE[mode], sample: true, capitalMode:'auto', capitalManual:'', notes: Array(NOTE_LINES).fill('')};
+  if (mode === 'options') {
+    const o = (id, und, strike, opt, side, expiry, entry, exit, lots, lotSize) => ({id, und, strike, opt, side, expiry, entry, exit, lots, lotSize});
+    base.trades = [
+      o(101, 'NIFTY', '24600', 'CE', 'L', '2026-11-17', '118.50', '146.20', '2', '65'),
+      o(102, 'BANKNIFTY', '54000', 'PE', 'L', '2026-11-24', '312', '268.40', '1', '30'),
+      o(103, 'NIFTY', '24300', 'PE', 'S', '2026-11-17', '64.80', '31.25', '1', '65')
+    ];
+  } else {
+    const t = (id, stock, entry, exit, qty) => ({id, stock, side:'L', entry, exit, qty});
+    base.trades = [t(1,'RELIANCE','2486','2512','25'), t(2,'HDFCBANK','1612.50','1598','40'), t(3,'ICICIBANK','1328','1342.50','50'), t(4,'INFY','1586.20','1602','30'), t(5,'TCS','3711','3748','15')];
+  }
+  return base;
+}
+function normJournal(j, mode){
+  const base = sampleJournal(mode);
+  if (!j || !Array.isArray(j.trades)) return base;
   return {
-    v:1, date: todayISO(), subtitle:'Trading Journal – Stocks', sample:true, nextId:6,
-    trades:[t(1,'RELIANCE','2486','2512','25'), t(2,'HDFCBANK','1612.50','1598','40'), t(3,'ICICIBANK','1328','1342.50','50'), t(4,'INFY','1586.20','1602','30'), t(5,'TCS','3711','3748','15')],
-    capitalMode:'auto', capitalManual:'',
-    notes: Array(NOTE_LINES).fill(''), powered: Array(POWER_LINES).fill(''),
-    scale: 2
+    subtitle: typeof j.subtitle === 'string' ? j.subtitle : base.subtitle,
+    sample: !!j.sample, trades: j.trades,
+    capitalMode: j.capitalMode === 'manual' ? 'manual' : 'auto', capitalManual: j.capitalManual || '',
+    notes: Array.from({length:NOTE_LINES}, (_, i) => (j.notes && j.notes[i]) || '')
   };
 }
 function loadState(){
+  const st = {v:2, mode:'stocks', date: todayISO(), nextId: 200, scale: 2, lotSizes: {},
+    powered: Array(POWER_LINES).fill(''), journals: {stocks: sampleJournal('stocks'), options: sampleJournal('options')}};
+  const shared = s => {
+    if (s.date) st.date = s.date;
+    st.nextId = Math.max(+s.nextId || 0, 200);
+    if ([1, 2, 3].includes(s.scale)) st.scale = s.scale;
+    st.powered = Array.from({length:POWER_LINES}, (_, i) => (s.powered && s.powered[i]) || '');
+  };
   try {
     const s = JSON.parse(localStorage.getItem(KEY));
-    if (s && s.v === 1 && Array.isArray(s.trades)) {
-      const base = sampleState();
-      const out = Object.assign(base, s);
-      out.notes = Array.from({length:NOTE_LINES}, (_, i) => (s.notes && s.notes[i]) || '');
-      out.powered = Array.from({length:POWER_LINES}, (_, i) => (s.powered && s.powered[i]) || '');
-      return out;
+    if (s && s.v === 2 && s.journals) {
+      shared(s);
+      if (MODES.includes(s.mode)) st.mode = s.mode;
+      if (s.lotSizes && typeof s.lotSizes === 'object') st.lotSizes = s.lotSizes;
+      for (const m of MODES) st.journals[m] = normJournal(s.journals[m], m);
+      return st;
     }
+    const o = JSON.parse(localStorage.getItem(OLD_KEY));
+    if (o && o.v === 1 && Array.isArray(o.trades)) { shared(o); st.journals.stocks = normJournal(o, 'stocks'); }
   } catch (e) {}
-  return sampleState();
+  return st;
 }
 let state = loadState();
+if (MODES.includes(location.hash.slice(1))) state.mode = location.hash.slice(1);
+const J = () => state.journals[state.mode];
 function persist(){ try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
 
 /* ---------- maths ---------- */
@@ -267,17 +318,6 @@ function num(s){
   const t = String(s).replace(/[,\s₹]/g, '');
   if (t === '' || !/^-?\d*\.?\d+$/.test(t)) return NaN;
   return Number(t);
-}
-function tradeResult(t){
-  const e = num(t.entry), x = num(t.exit), q = num(t.qty);
-  if (!(e > 0 && x > 0 && q > 0)) return null;
-  const dir = t.side === 'S' ? -1 : 1;
-  return {
-    stock: (t.stock || '').trim().toUpperCase() || '—', side: t.side === 'S' ? 'S' : 'L',
-    entry: e, exit: x, qty: q,
-    pnl: Math.round((x - e) * q * dir * 100) / 100,
-    pct: (x - e) / e * 100 * dir
-  };
 }
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -288,20 +328,44 @@ function dateLabel(iso){
   const dt = new Date(y, mo - 1, d);
   return d + ' ' + MONTHS[mo - 1] + ' ' + y + ' (' + DAYS[dt.getDay()] + ')';
 }
+function shortDate(iso){ const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || ''); return m ? (+m[3]) + ' ' + MONTHS[+m[2] - 1] : ''; }
+// One trade's result. Options: qty = lots × lot size, and an option may close at ₹0 (expired worthless).
+function tradeResult(t, mode){
+  const opt = mode === 'options';
+  const e = num(t.entry), x = num(t.exit);
+  const q = opt ? num(t.lots) * num(t.lotSize) : num(t.qty);
+  if (!(e > 0 && (opt ? x >= 0 : x > 0) && q > 0)) return null;
+  const dir = t.side === 'S' ? -1 : 1;
+  const r = {side: dir < 0 ? 'S' : 'L', entry: e, exit: x, qty: Math.round(q * 1e4) / 1e4,
+    pnl: Math.round((x - e) * q * dir * 100) / 100, pct: (x - e) / e * 100 * dir};
+  if (opt) {
+    const und = String(t.und || '').trim().toUpperCase(), strike = String(t.strike || '').replace(/[,\s]/g, '');
+    r.stock = und || strike ? [und, strike, t.opt === 'PE' ? 'PE' : 'CE'].filter(Boolean).join(' ') : '—';
+    const lots = num(t.lots);
+    r.meta = [];
+    if (t.expiry) r.meta.push({t: 'Exp ' + shortDate(t.expiry)});
+    r.meta.push(dir < 0 ? {t: 'Sell', sell: true} : {t: 'Buy'});
+    r.meta.push({t: fmt0.format(lots) + (lots === 1 ? ' lot' : ' lots')});
+  } else {
+    r.stock = String(t.stock || '').trim().toUpperCase() || '—';
+  }
+  return r;
+}
 function compute(s){
-  const rows = s.trades.map(tradeResult).filter(Boolean);
+  const mode = s.mode, j = s.journals[mode];
+  const rows = j.trades.map(t => tradeResult(t, mode)).filter(Boolean);
   const trades = rows.length, wins = rows.filter(r => r.pnl > 0).length;
   const totalPnl = Math.round(rows.reduce((a, r) => a + r.pnl, 0) * 100) / 100;
   const autoCap = Math.round(rows.reduce((a, r) => a + r.entry * r.qty, 0) * 100) / 100;
-  const manual = num(s.capitalManual);
-  const capital = s.capitalMode === 'manual' ? (manual > 0 ? manual : 0) : autoCap;
+  const manual = num(j.capitalManual);
+  const capital = j.capitalMode === 'manual' ? (manual > 0 ? manual : 0) : autoCap;
   return {
-    rows, trades, wins, totalPnl, autoCap, capital,
+    mode, rows, trades, wins, totalPnl, autoCap, capital,
     winRate: trades ? wins / trades * 100 : 0,
     avgRet: trades ? rows.reduce((a, r) => a + r.pct, 0) / trades : 0,
     totalPct: capital > 0 ? totalPnl / capital * 100 : 0,
-    date: dateLabel(s.date), subtitle: (s.subtitle || '').trim(),
-    notes: s.notes.map(n => n.trim()).filter(Boolean),
+    date: dateLabel(s.date), subtitle: (j.subtitle || '').trim(),
+    notes: j.notes.map(n => n.trim()).filter(Boolean),
     powered: s.powered.map(n => n.trim()).filter(Boolean)
   };
 }
@@ -388,7 +452,7 @@ const imgReady = Promise.all(Object.values(IMG).map(im => im.decode ? im.decode(
 
 function layout(st){
   const n = Math.max(1, st.rows.length);
-  const T = 551, HH = 58, RH = 53;
+  const T = 551, HH = 58, RH = st.mode === 'options' ? 60 : 53;
   const tableBottom = T + HH + n * RH;
   const S = tableBottom + 30;
   const B = S + 120 + 42;
@@ -548,22 +612,34 @@ function drawKpis(ctx, st, k){
   fit(ctx, capTxt, 700, 82, 34, 300); ctx.fillStyle = '#13213f'; ctx.fillText(capTxt, 704, base);
 }
 
-const COLS = [
-  {label:'#',         align:'center', at:82},
-  {label:'Stock',     align:'left',   at:132},
-  {label:'Entry (₹)', align:'right',  at:462},
-  {label:'Exit (₹)',  align:'right',  at:616},
-  {label:'Qty',       align:'right',  at:702},
-  {label:'P&L (₹)',   align:'right',  at:866},
-  {label:'P&L %',     align:'right',  at:1018}
-];
+const COLS = {
+  stocks: [
+    {label:'#',         align:'center', at:82},
+    {label:'Stock',     align:'left',   at:132},
+    {label:'Entry (₹)', align:'right',  at:462},
+    {label:'Exit (₹)',  align:'right',  at:616},
+    {label:'Qty',       align:'right',  at:702},
+    {label:'P&L (₹)',   align:'right',  at:866},
+    {label:'P&L %',     align:'right',  at:1018}
+  ],
+  options: [
+    {label:'#',         align:'center', at:82},
+    {label:'Contract',  align:'left',   at:132},
+    {label:'Entry (₹)', align:'right',  at:494},
+    {label:'Exit (₹)',  align:'right',  at:620},
+    {label:'Qty',       align:'right',  at:712},
+    {label:'P&L (₹)',   align:'right',  at:866},
+    {label:'P&L %',     align:'right',  at:1018}
+  ]
+};
 function drawTable(ctx, st, L, k){
   const x = 46, w = 996, y = L.T, hh = L.HH, rh = L.RH, h = hh + L.n * rh, tint0 = 730;
+  const opt = st.mode === 'options', cols = COLS[st.mode];
   ctx.save(); shadow(ctx, k, 22, 7, 'rgba(30,40,70,0.13)'); rr(ctx, x, y, w, h, 16); ctx.fillStyle = '#fffdf8'; ctx.fill(); ctx.restore();
   ctx.save(); rr(ctx, x, y, w, h, 16); ctx.clip();
   ctx.fillStyle = grad(ctx, y, y + hh, '#1e3c74', '#142a56'); ctx.fillRect(x, y, w, hh);
   ctx.fillStyle = '#ffffff'; ctx.font = F(600, 25);
-  for (const c of COLS) txt(ctx, c.label, c.at, y + hh / 2 + 9, c.align);
+  for (const c of cols) txt(ctx, c.label, c.at, y + hh / 2 + 9, c.align);
   if (!st.rows.length) {
     const ry = y + hh; ctx.fillStyle = '#fffdf8'; ctx.fillRect(x, ry, w, rh);
     ctx.fillStyle = '#8a8f9c'; ctx.font = F(500, 24); txt(ctx, 'No trades yet', DW / 2, ry + rh / 2 + 8, 'center');
@@ -576,22 +652,35 @@ function drawTable(ctx, st, L, k){
     ctx.fillRect(tint0, ry, x + w - tint0, rh);
     if (i > 0) { ctx.fillStyle = 'rgba(120,110,85,0.16)'; ctx.fillRect(x, ry, w, 1.2); }
     ctx.fillStyle = C.ink; ctx.font = F(500, 25); txt(ctx, String(i + 1), 82, cy, 'center');
-    // stock name, with a SHORT tag for short trades
-    let maxName = 188, tagW = 0;
-    if (r.side === 'S') { ctx.font = F(600, 13); tagW = ctx.measureText('SHORT').width + 14; maxName -= tagW + 8; }
-    const ns = fit(ctx, r.stock, 700, 26, 19, maxName);
-    const name = clip(ctx, r.stock, maxName);
-    ctx.fillStyle = '#121a2b'; ctx.fillText(name, 132, cy);
-    if (tagW) {
-      const nw = ctx.measureText(name).width, tx = 132 + nw + 8, ty = cy - ns * 0.36 - 11;
-      rr(ctx, tx, ty, tagW, 22, 6); ctx.fillStyle = '#fbe7d6'; ctx.fill();
-      ctx.fillStyle = '#a4501a'; ctx.font = F(600, 13); ctx.fillText('SHORT', tx + 7, ty + 15.5);
+    if (opt) {
+      // contract on top, expiry · buy/sell · lots underneath
+      const maxName = 236;
+      fit(ctx, r.stock, 700, 24, 16, maxName);
+      ctx.fillStyle = '#121a2b'; ctx.fillText(clip(ctx, r.stock, maxName), 132, ry + 27);
+      ctx.font = F(500, 15); let mx = 132;
+      r.meta.forEach((m, mi) => {
+        if (mi) { ctx.fillStyle = '#9097a6'; ctx.fillText(' · ', mx, ry + 49); mx += ctx.measureText(' · ').width; }
+        ctx.fillStyle = m.sell ? '#a4501a' : '#5b6478'; ctx.font = F(m.sell ? 600 : 500, 15);
+        ctx.fillText(m.t, mx, ry + 49); mx += ctx.measureText(m.t).width; ctx.font = F(500, 15);
+      });
+    } else {
+      // stock name, with a SHORT tag for short trades
+      let maxName = 188, tagW = 0;
+      if (r.side === 'S') { ctx.font = F(600, 13); tagW = ctx.measureText('SHORT').width + 14; maxName -= tagW + 8; }
+      const ns = fit(ctx, r.stock, 700, 26, 19, maxName);
+      const name = clip(ctx, r.stock, maxName);
+      ctx.fillStyle = '#121a2b'; ctx.fillText(name, 132, cy);
+      if (tagW) {
+        const nw = ctx.measureText(name).width, tx = 132 + nw + 8, ty = cy - ns * 0.36 - 11;
+        rr(ctx, tx, ty, tagW, 22, 6); ctx.fillStyle = '#fbe7d6'; ctx.fill();
+        ctx.fillStyle = '#a4501a'; ctx.font = F(600, 13); ctx.fillText('SHORT', tx + 7, ty + 15.5);
+      }
     }
     ctx.fillStyle = C.ink;
-    fit(ctx, price(r.entry), 400, 26, 18, 140); txt(ctx, price(r.entry), 462, cy, 'right');
-    fit(ctx, price(r.exit), 400, 26, 18, 140); txt(ctx, price(r.exit), 616, cy, 'right');
-    const q = fmt0.format(r.qty) === String(r.qty) || Number.isInteger(r.qty) ? fmt0.format(r.qty) : String(r.qty);
-    fit(ctx, q, 400, 26, 18, 76); txt(ctx, q, 702, cy, 'right');
+    fit(ctx, price(r.entry), 400, 26, 18, opt ? 118 : 140); txt(ctx, price(r.entry), cols[2].at, cy, 'right');
+    fit(ctx, price(r.exit), 400, 26, 18, opt ? 112 : 140); txt(ctx, price(r.exit), cols[3].at, cy, 'right');
+    const q = Number.isInteger(r.qty) ? fmt0.format(r.qty) : String(r.qty);
+    fit(ctx, q, 400, 26, 18, opt ? 80 : 76); txt(ctx, q, cols[4].at, cy, 'right');
     ctx.fillStyle = up ? C.green : dn ? C.red : C.ink;
     const pTxt = signedMoney(r.pnl, false);
     fit(ctx, pTxt, 700, 27, 18, 124); txt(ctx, pTxt, 866, cy, 'right');
@@ -767,78 +856,126 @@ const fontsReady = (document.fonts && document.fonts.load)
 const $ = id => document.getElementById(id);
 const tradesEl = $('trades');
 const XSVG = '<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+const COPY = {
+  stocks: {hint: 'P&L = (exit − entry) × qty. Short trades flip the sign.', idle: 'Needs entry, exit and qty',
+    capLabel: 'Entry × qty, summed:', capHint: 'Total P&L % on the card is total P&L ÷ this amount.'},
+  options: {hint: 'P&L = (exit − entry premium) × lots × lot size. Sold options flip the sign. Exit can be 0 if the option expired worthless.',
+    idle: 'Needs entry, exit, lots and lot size',
+    capLabel: 'Premium × qty, summed:', capHint: "Total P&L % on the card is total P&L ÷ this amount. If you sold options, enter the margin you used instead."}
+};
 
-function renderTrades(){
-  tradesEl.textContent = '';
-  state.trades.forEach((t, i) => {
-    const el = document.createElement('div'); el.className = 'trade'; el.dataset.id = t.id;
-    el.innerHTML =
-      '<span class="t-idx" aria-hidden="true">' + (i + 1) + '</span>' +
-      '<input type="text" class="t-stock" id="stock-' + t.id + '" data-f="stock" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="24" placeholder="Stock symbol" aria-label="Trade ' + (i + 1) + ' stock">' +
-      '<div class="seg" role="group" aria-label="Trade ' + (i + 1) + ' direction"><button type="button" data-side="L">Long</button><button type="button" data-side="S">Short</button></div>' +
-      '<button type="button" class="t-del" aria-label="Remove trade ' + (i + 1) + '">' + XSVG + '</button>' +
-      '<div class="nums">' +
-        '<label class="fld">Entry ₹<input type="text" id="entry-' + t.id + '" data-f="entry" inputmode="decimal" autocomplete="off" placeholder="0.00"></label>' +
-        '<label class="fld">Exit ₹<input type="text" id="exit-' + t.id + '" data-f="exit" inputmode="decimal" autocomplete="off" placeholder="0.00"></label>' +
-        '<label class="fld">Qty<input type="text" id="qty-' + t.id + '" data-f="qty" inputmode="numeric" autocomplete="off" placeholder="0"></label>' +
-        '<output class="t-out" id="out-' + t.id + '" for="entry-' + t.id + ' exit-' + t.id + ' qty-' + t.id + '"></output>' +
+function fld(label, f, id, attrs){
+  return '<label class="fld">' + label + '<input type="' + (f === 'expiry' ? 'date' : 'text') + '" id="' + f + '-' + id + '" data-f="' + f + '"' + (attrs || '') + '></label>';
+}
+function seg(n, key, label, opts){
+  return '<div class="seg" role="group" aria-label="Trade ' + n + ' ' + label + '">' +
+    opts.map(([v, text]) => '<button type="button" data-k="' + key + '" data-v="' + v + '">' + text + '</button>').join('') + '</div>';
+}
+const NUM = ' inputmode="decimal" autocomplete="off" placeholder="0.00"';
+function rowHTML(t, i, mode){
+  const n = i + 1, id = t.id;
+  const idx = '<span class="t-idx" aria-hidden="true">' + n + '</span>';
+  const del = '<button type="button" class="t-del" aria-label="Remove trade ' + n + '">' + XSVG + '</button>';
+  const out = '<output class="t-out" id="out-' + id + '"></output>';
+  if (mode === 'options') {
+    return idx +
+      '<div class="contract">' +
+        '<input type="text" class="t-stock" id="und-' + id + '" data-f="und" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="20" placeholder="Underlying" aria-label="Trade ' + n + ' underlying">' +
+        '<input type="text" class="t-strike" id="strike-' + id + '" data-f="strike" inputmode="decimal" autocomplete="off" maxlength="10" placeholder="Strike" aria-label="Trade ' + n + ' strike">' +
+        seg(n, 'opt', 'option type', [['CE', 'CE'], ['PE', 'PE']]) +
+        seg(n, 'side', 'buy or sell', [['L', 'Buy'], ['S', 'Sell']]) +
+      '</div>' + del +
+      '<div class="nums opt">' +
+        fld('Expiry', 'expiry', id) + fld('Entry ₹', 'entry', id, NUM) + fld('Exit ₹', 'exit', id, NUM) +
+        fld('Lots', 'lots', id, ' inputmode="numeric" autocomplete="off" placeholder="1"') +
+        fld('Lot size', 'lotSize', id, ' inputmode="numeric" autocomplete="off" placeholder="Units"') + out +
       '</div>';
-    el.querySelector('[data-f=stock]').value = t.stock;
-    el.querySelector('[data-f=entry]').value = t.entry;
-    el.querySelector('[data-f=exit]').value = t.exit;
-    el.querySelector('[data-f=qty]').value = t.qty;
+  }
+  return idx +
+    '<input type="text" class="t-stock" id="stock-' + id + '" data-f="stock" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="24" placeholder="Stock symbol" aria-label="Trade ' + n + ' stock">' +
+    seg(n, 'side', 'direction', [['L', 'Long'], ['S', 'Short']]) + del +
+    '<div class="nums">' + fld('Entry ₹', 'entry', id, NUM) + fld('Exit ₹', 'exit', id, NUM) +
+      fld('Qty', 'qty', id, ' inputmode="numeric" autocomplete="off" placeholder="0"') + out + '</div>';
+}
+function renderTrades(){
+  const j = J(), mode = state.mode;
+  tradesEl.textContent = '';
+  j.trades.forEach((t, i) => {
+    const el = document.createElement('div'); el.className = 'trade' + (mode === 'options' ? ' opt' : ''); el.dataset.id = t.id;
+    el.innerHTML = rowHTML(t, i, mode);
+    el.querySelectorAll('[data-f]').forEach(inp => { inp.value = t[inp.dataset.f] || ''; });
     tradesEl.appendChild(el);
   });
-  $('add-trade').disabled = state.trades.length >= MAX_TRADES;
+  $('add-trade').disabled = j.trades.length >= MAX_TRADES;
   updateTradeUI();
 }
+function fieldBad(f, v, mode){
+  if (v === '' || v == null || f === 'stock' || f === 'und' || f === 'expiry') return false;
+  const n = num(v);
+  return f === 'exit' && mode === 'options' ? !(n >= 0) : !(n > 0);
+}
+function firstInput(t){ return $((state.mode === 'options' ? 'und-' : 'stock-') + t.id); }
 function updateTradeUI(){
+  const j = J(), mode = state.mode;
   let done = 0;
-  state.trades.forEach(t => {
+  j.trades.forEach(t => {
     const el = tradesEl.querySelector('[data-id="' + t.id + '"]'); if (!el) return;
-    el.querySelectorAll('.seg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.side === t.side)));
-    ['entry', 'exit', 'qty'].forEach(f => { const v = t[f]; el.querySelector('[data-f=' + f + ']').classList.toggle('bad', v !== '' && !(num(v) > 0)); });
-    const out = el.querySelector('.t-out'), r = tradeResult(t);
+    el.querySelectorAll('.seg button').forEach(b => b.setAttribute('aria-pressed', String(t[b.dataset.k] === b.dataset.v)));
+    el.querySelectorAll('[data-f]').forEach(inp => inp.classList.toggle('bad', fieldBad(inp.dataset.f, t[inp.dataset.f], mode)));
+    const out = el.querySelector('.t-out'), r = tradeResult(t, mode);
     if (r) { done++; out.className = 't-out ' + (r.pnl > 0 ? 'gain' : r.pnl < 0 ? 'loss' : ''); out.textContent = signedMoney(r.pnl, true) + ' · ' + signedPct(r.pct); }
-    else { out.className = 't-out idle'; out.textContent = 'Needs entry, exit and qty'; }
+    else { out.className = 't-out idle'; out.textContent = COPY[mode].idle; }
   });
-  const n = state.trades.length;
+  const n = j.trades.length;
   $('trade-count').textContent = done === n ? n + (n === 1 ? ' trade' : ' trades') : done + ' of ' + n + ' complete · only complete trades go on the card';
-  $('sample-note').hidden = !state.sample;
+  $('sample-note').hidden = !j.sample;
+}
+function tradeFor(target){
+  const row = target.closest('.trade'); if (!row) return {};
+  const j = J(), idx = j.trades.findIndex(x => String(x.id) === row.dataset.id);
+  return {row, j, idx, t: j.trades[idx]};
 }
 tradesEl.addEventListener('input', e => {
-  const f = e.target.dataset.f; const row = e.target.closest('.trade'); if (!f || !row) return;
-  const t = state.trades.find(x => String(x.id) === row.dataset.id); if (!t) return;
-  t[f] = e.target.value; state.sample = false; changed(true);
+  const f = e.target.dataset.f; if (!f) return;
+  const {j, t} = tradeFor(e.target); if (!t) return;
+  t[f] = e.target.value; j.sample = false;
+  if (f === 'lotSize' && num(t.lotSize) > 0) { const u = String(t.und || '').trim().toUpperCase(); if (u) state.lotSizes[u] = t.lotSize; }
+  changed(true);
+});
+// Fill a known lot size once the underlying is typed in full.
+tradesEl.addEventListener('change', e => {
+  if (e.target.dataset.f !== 'und') return;
+  const {row, t} = tradeFor(e.target); if (!t) return;
+  const u = String(t.und || '').trim().toUpperCase();
+  if (u && !t.lotSize && state.lotSizes[u]) { t.lotSize = state.lotSizes[u]; row.querySelector('[data-f=lotSize]').value = t.lotSize; changed(true); }
 });
 tradesEl.addEventListener('click', e => {
-  const row = e.target.closest('.trade'); if (!row) return;
-  const idx = state.trades.findIndex(x => String(x.id) === row.dataset.id); if (idx < 0) return;
-  const sideBtn = e.target.closest('.seg button');
-  if (sideBtn) { state.trades[idx].side = sideBtn.dataset.side; state.sample = false; changed(true); return; }
+  const {j, idx, t} = tradeFor(e.target); if (!t) return;
+  const b = e.target.closest('.seg button');
+  if (b) { t[b.dataset.k] = b.dataset.v; j.sample = false; changed(true); return; }
   if (e.target.closest('.t-del')) {
-    state.trades.splice(idx, 1); state.sample = false;
+    j.trades.splice(idx, 1); j.sample = false;
     renderTrades(); changed(false);
-    const next = state.trades[Math.min(idx, state.trades.length - 1)];
-    (next ? $('stock-' + next.id) : $('add-trade')).focus();
+    const next = j.trades[Math.min(idx, j.trades.length - 1)];
+    (next ? firstInput(next) : $('add-trade')).focus();
   }
 });
 tradesEl.addEventListener('keydown', e => {
   if (e.key !== 'Enter' || !e.target.dataset.f) return;
   const row = e.target.closest('.trade');
-  if (row && row === tradesEl.lastElementChild && state.trades.length < MAX_TRADES) { e.preventDefault(); addTrade(); }
+  if (row && row === tradesEl.lastElementChild && J().trades.length < MAX_TRADES) { e.preventDefault(); addTrade(); }
 });
 function addTrade(){
-  if (state.trades.length >= MAX_TRADES) return;
-  const t = {id: state.nextId++, stock:'', side:'L', entry:'', exit:'', qty:''};
-  state.trades.push(t); renderTrades(); changed(false);
-  $('stock-' + t.id).focus();
+  const j = J(); if (j.trades.length >= MAX_TRADES) return;
+  const t = blankTrade(state.mode, state.nextId++);
+  j.trades.push(t); renderTrades(); changed(false);
+  firstInput(t).focus();
 }
 $('add-trade').addEventListener('click', addTrade);
 
 function renderLines(){
   const notes = $('notes'); notes.textContent = '';
-  state.notes.forEach((v, i) => {
+  J().notes.forEach((v, i) => {
     const d = document.createElement('div'); d.className = 'ln';
     d.innerHTML = '<i aria-hidden="true">•</i><input type="text" id="note-' + i + '" maxlength="90" placeholder="Note ' + (i + 1) + '" aria-label="Note ' + (i + 1) + '">';
     d.querySelector('input').value = v; notes.appendChild(d);
@@ -850,27 +987,42 @@ function renderLines(){
     d.querySelector('input').value = v; pw.appendChild(d);
   });
 }
-$('notes').addEventListener('input', e => { const i = +e.target.id.split('-')[1]; state.notes[i] = e.target.value; changed(false); });
+$('notes').addEventListener('input', e => { const i = +e.target.id.split('-')[1]; J().notes[i] = e.target.value; changed(false); });
 $('powered').addEventListener('input', e => { const i = +e.target.id.split('-')[1]; state.powered[i] = e.target.value; changed(false); });
 
 function syncFields(){
+  const j = J(), copy = COPY[state.mode];
+  document.querySelectorAll('#modebar button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === state.mode)));
   $('f-date').value = state.date;
-  $('f-subtitle').value = state.subtitle;
-  $('cap-auto').checked = state.capitalMode !== 'manual';
-  $('cap-manual').checked = state.capitalMode === 'manual';
-  $('f-capital').value = state.capitalManual;
-  $('f-capital').disabled = state.capitalMode !== 'manual';
+  $('f-subtitle').value = j.subtitle;
+  $('f-subtitle').placeholder = SUBTITLE[state.mode];
+  $('cap-auto').checked = j.capitalMode !== 'manual';
+  $('cap-manual').checked = j.capitalMode === 'manual';
+  $('f-capital').value = j.capitalManual;
+  $('f-capital').disabled = j.capitalMode !== 'manual';
+  $('f-capital').classList.toggle('bad', j.capitalManual !== '' && !(num(j.capitalManual) > 0));
+  $('cap-auto-label').textContent = copy.capLabel;
+  $('cap-hint').textContent = copy.capHint;
+  $('trade-hint').textContent = copy.hint;
   $('size-' + state.scale).checked = true;
 }
+function setMode(m){
+  if (!MODES.includes(m) || m === state.mode) return;
+  state.mode = m;
+  try { history.replaceState(null, '', '#' + m); } catch (e) {}
+  syncFields(); renderTrades(); renderLines(); changed(false); setStatus('');
+}
+document.querySelectorAll('#modebar button').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
+window.addEventListener('hashchange', () => setMode(location.hash.slice(1)));
 $('f-date').addEventListener('input', e => { state.date = e.target.value; changed(false); });
-$('f-subtitle').addEventListener('input', e => { state.subtitle = e.target.value; changed(false); });
+$('f-subtitle').addEventListener('input', e => { J().subtitle = e.target.value; changed(false); });
 document.querySelectorAll('input[name=cap]').forEach(r => r.addEventListener('change', e => {
-  state.capitalMode = e.target.value; $('f-capital').disabled = state.capitalMode !== 'manual';
-  if (state.capitalMode === 'manual') $('f-capital').focus();
+  const j = J(); j.capitalMode = e.target.value; $('f-capital').disabled = j.capitalMode !== 'manual';
+  if (j.capitalMode === 'manual') $('f-capital').focus();
   changed(false);
 }));
 $('f-capital').addEventListener('input', e => {
-  state.capitalManual = e.target.value;
+  J().capitalManual = e.target.value;
   e.target.classList.toggle('bad', e.target.value !== '' && !(num(e.target.value) > 0));
   changed(false);
 });
@@ -879,12 +1031,14 @@ document.querySelectorAll('input[name=size]').forEach(r => r.addEventListener('c
 $('nd-btn').addEventListener('click', () => { $('nd-confirm').hidden = false; $('nd-btn').hidden = true; $('nd-yes').focus(); });
 $('nd-no').addEventListener('click', () => { $('nd-confirm').hidden = true; $('nd-btn').hidden = false; $('nd-btn').focus(); });
 $('nd-yes').addEventListener('click', () => {
-  state.date = todayISO(); state.sample = false;
-  state.trades = [{id: state.nextId++, stock:'', side:'L', entry:'', exit:'', qty:''}];
-  state.notes = Array(NOTE_LINES).fill('');
+  state.date = todayISO();
+  for (const m of MODES) {
+    const j = state.journals[m];
+    j.sample = false; j.trades = [blankTrade(m, state.nextId++)]; j.notes = Array(NOTE_LINES).fill('');
+  }
   $('nd-confirm').hidden = true; $('nd-btn').hidden = false;
   syncFields(); renderTrades(); renderLines(); changed(false);
-  $('stock-' + state.trades[0].id).focus();
+  firstInput(J().trades[0]).focus();
   setStatus('New day started. Add your first trade.');
 });
 
@@ -906,7 +1060,7 @@ function drawPreview(){
   if (cv.width !== W) cv.width = W;
   if (cv.height !== Hh) cv.height = Hh;
   const res = draw(cv.getContext('2d'), st, L, k);
-  cv.setAttribute('aria-label', 'Journal card for ' + (st.date || 'today') + ': ' + st.trades + ' trades, total P&L ' + (st.trades ? signedMoney(st.totalPnl, true) : '₹0') + ', win rate ' + st.winRate.toFixed(1) + '%');
+  cv.setAttribute('aria-label', 'SwingX ' + st.mode + ' journal card for ' + (st.date || 'today') + ': ' + st.trades + ' trades, total P&L ' + (st.trades ? signedMoney(st.totalPnl, true) : '₹0') + ', win rate ' + st.winRate.toFixed(1) + '%');
   const warn = [];
   if (res.notesOverflow) warn.push('notes');
   if (res.poweredOverflow) warn.push('Human + AI lines');
@@ -973,8 +1127,8 @@ $('download').addEventListener('click', async () => {
   const btn = $('download'); btn.disabled = true; setStatus('Rendering the image…');
   try {
     const {blob, w, h} = await renderPng();
-    const name = 'swingx-journal-' + (state.date || todayISO()) + '.png';
-    const label = 'SwingX journal card, ' + (dateLabel(state.date) || 'today');
+    const name = 'swingx-' + state.mode + '-' + (state.date || todayISO()) + '.png';
+    const label = 'SwingX ' + state.mode + ' journal card, ' + (dateLabel(state.date) || 'today');
     const dl = await getDownloads();
     if (!dl) {
       if (window.top === window.self) {
