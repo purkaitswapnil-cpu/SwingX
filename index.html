@@ -188,7 +188,7 @@ input.bad{border-color:var(--loss)}
       </div>
 
       <div class="panel powered">
-        <h2>Powered by Human + AI <small>Optional. Kept when you start a new day.</small></h2>
+        <h2>Powered by Human + AI <small>The same three lines print on every card. New day keeps them.</small></h2>
         <div class="lines" id="powered"></div>
       </div>
 
@@ -250,6 +250,7 @@ const MAX_TRADES = 12;
 const NOTE_LINES = 4, POWER_LINES = 3;
 const MODES = ['stocks', 'options'];
 const SUBTITLE = {stocks: 'Trading Journal – Stocks', options: 'Trading Journal – Options'};
+const POWERED = ['AI for scan, setups & risk alerts', 'Human for judgment & execution', 'Discipline for long-term compounding'];
 
 function todayISO(){
   const d = new Date();
@@ -287,12 +288,13 @@ function normJournal(j, mode){
 }
 function loadState(){
   const st = {v:2, mode:'stocks', date: todayISO(), nextId: 200, scale: 2, lotSizes: {},
-    powered: Array(POWER_LINES).fill(''), journals: {stocks: sampleJournal('stocks'), options: sampleJournal('options')}};
+    powered: POWERED.slice(), journals: {stocks: sampleJournal('stocks'), options: sampleJournal('options')}};
   const shared = s => {
     if (s.date) st.date = s.date;
     st.nextId = Math.max(+s.nextId || 0, 200);
     if ([1, 2, 3].includes(s.scale)) st.scale = s.scale;
     st.powered = Array.from({length:POWER_LINES}, (_, i) => (s.powered && s.powered[i]) || '');
+    if (st.powered.every(v => !v.trim())) st.powered = POWERED.slice();
   };
   try {
     const s = JSON.parse(localStorage.getItem(KEY));
@@ -382,9 +384,9 @@ function price(n){ return fmt2.format(n); }
 // The card: 1086 × 1448 design units (3:4), drawn in the SwingX brand: ink, electric blue, Manrope.
 const DW = 1086, DH = 1448;
 const C = {
-  bg1:'#14243d', bg2:'#091322', grid:'rgba(140,170,220,0.05)', panel1:'#122139', panel2:'#0e1b30', line:'#22344f', hair:'#1b2b44',
-  text:'#f3f6fb', soft:'#cbd5e4', muted:'#8496b0', faint:'#5e708b',
-  blue:'#2f6bff', blueLt:'#7aa0ff', up:'#2fd27d', down:'#ff6b6b', amber:'#ffb454'
+  bg1:'#ffffff', bg2:'#f6f8fc', grid:'rgba(15,27,45,0.035)', panel1:'#f8fafd', panel2:'#f3f6fb', line:'#e0e6ef', hair:'#e7ecf3',
+  text:'#0f1b2d', soft:'#2c3b53', muted:'#66768f', faint:'#94a2b6',
+  blue:'#2f6bff', blueLt:'#2f6bff', up:'#119a4b', down:'#e03131', amber:'#c2410c'
 };
 const SANS = '"Manrope","Segoe UI","Helvetica Neue",Arial,sans-serif';
 const F = (w, s) => w + ' ' + s + 'px ' + SANS;
@@ -453,14 +455,15 @@ function tone(n){ return n > 0.0049 ? C.up : n < -0.0049 ? C.down : C.text; }
 // with many trades the notes shrink first, then the rows. Spare space with few trades sits above the notes.
 function layout(st){
   const n = Math.max(1, st.rows.length), opt = st.mode === 'options';
-  const T = 572, HH = 50, FOOT = 1356, G = 24;
-  const avail = FOOT - 28 - T - HH - G;
-  const pref = opt ? 64 : 58, minRH = 30, SOFT = 230, MIN = 150, MAX = 400;
+  const T = 572, HH = 50, FOOT = 1356, G = 24, PH = 116, PG = 16;
+  const P = FOOT - 28 - PH;                        // top of the Powered by strip
+  const avail = P - PG - T - HH - G;               // shared by table rows and the notes panel
+  const pref = opt ? 64 : 58, minRH = 30, SOFT = 190, MIN = 130, MAX = 400;
   let RH = pref, notesH = avail - n * RH;
   if (notesH < SOFT) { RH = Math.max(minRH, (avail - SOFT) / n); notesH = avail - n * RH; }
   if (notesH < MIN) { notesH = MIN; RH = (avail - MIN) / n; }
   let extra = 0; if (notesH > MAX) { extra = notesH - MAX; notesH = MAX; }
-  return {T, HH, RH, n, B: T + HH + n * RH + G + extra, notesH, FOOT, H: DH};
+  return {T, HH, RH, n, B: T + HH + n * RH + G + extra, notesH, P, PH, FOOT, H: DH};
 }
 
 function draw(ctx, st, L, k){
@@ -472,7 +475,7 @@ function draw(ctx, st, L, k){
   const bg = ctx.createLinearGradient(0, 0, DW * 0.35, DH); bg.addColorStop(0, C.bg1); bg.addColorStop(1, C.bg2);
   ctx.fillStyle = bg; ctx.fillRect(0, 0, DW, DH);
   const glow = ctx.createRadialGradient(DW * 0.88, 70, 0, DW * 0.88, 70, 620);
-  glow.addColorStop(0, 'rgba(47,107,255,0.24)'); glow.addColorStop(1, 'rgba(47,107,255,0)');
+  glow.addColorStop(0, 'rgba(47,107,255,0.09)'); glow.addColorStop(1, 'rgba(47,107,255,0)');
   ctx.fillStyle = glow; ctx.fillRect(0, 0, DW, DH);
   ctx.fillStyle = C.grid;
   for (let x = 0; x <= DW; x += 54.3) ctx.fillRect(x, 0, 1, DH);
@@ -497,8 +500,8 @@ function drawHeader(ctx, st){
   // right: journal pill, date, weekday and subtitle
   const R = DW - 64, mode = st.mode === 'options' ? 'OPTIONS' : 'STOCKS';
   ctx.font = F(800, 14); const pw = [...mode].reduce((a, c) => a + ctx.measureText(c).width, 0) + 2.2 * (mode.length - 1) + 32;
-  rr(ctx, R - pw, 58, pw, 32, 16); ctx.fillStyle = 'rgba(47,107,255,0.16)'; ctx.fill();
-  rr(ctx, R - pw + .5, 58.5, pw - 1, 31, 16); ctx.strokeStyle = 'rgba(122,160,255,0.45)'; ctx.lineWidth = 1.2; ctx.stroke();
+  rr(ctx, R - pw, 58, pw, 32, 16); ctx.fillStyle = 'rgba(47,107,255,0.09)'; ctx.fill();
+  rr(ctx, R - pw + .5, 58.5, pw - 1, 31, 16); ctx.strokeStyle = 'rgba(47,107,255,0.35)'; ctx.lineWidth = 1.2; ctx.stroke();
   label(ctx, mode, R - pw / 2, 79, 14, C.blueLt, 'center', 2.2);
   const m = /^(.*) \((\w+)\)$/.exec(st.date || '');
   ctx.fillStyle = C.text; fit(ctx, m ? m[1] : (st.date || ''), 800, 36, 24, 380); txt(ctx, m ? m[1] : (st.date || ''), R, 132, 'right');
@@ -513,7 +516,7 @@ function sparkline(ctx, st, x, y, w, h, col){
   const lo = Math.min(...pts), hi = Math.max(...pts), span = hi - lo || 1;
   const X = i => x + w * i / (pts.length - 1), Y = v => y + h - (v - lo) / span * h;
   ctx.save();
-  ctx.setLineDash([3, 5]); ctx.strokeStyle = 'rgba(203,213,228,0.25)'; ctx.lineWidth = 1;
+  ctx.setLineDash([3, 5]); ctx.strokeStyle = 'rgba(15,27,45,0.16)'; ctx.lineWidth = 1;
   ctx.beginPath(); ctx.moveTo(x, Y(0)); ctx.lineTo(x + w, Y(0)); ctx.stroke(); ctx.setLineDash([]);
   ctx.beginPath(); pts.forEach((v, i) => i ? ctx.lineTo(X(i), Y(v)) : ctx.moveTo(X(i), Y(v)));
   const g = ctx.createLinearGradient(0, y, 0, y + h); g.addColorStop(0, rgba(col, 0.28)); g.addColorStop(1, rgba(col, 0));
@@ -529,7 +532,7 @@ function drawHero(ctx, st){
   const y = 222, h = 186, col = st.trades ? tone(st.totalPnl) : C.text;
   // total P&L
   const x = 64, w = 580;
-  panel(ctx, x, y, w, h, 22, col === C.text ? C.panel1 : rgba(col, 0.15), col === C.text ? C.panel2 : rgba(col, 0.03), col === C.text ? C.line : rgba(col, 0.35));
+  panel(ctx, x, y, w, h, 22, col === C.text ? C.panel1 : rgba(col, 0.10), col === C.text ? C.panel2 : rgba(col, 0.02), col === C.text ? C.line : rgba(col, 0.30));
   label(ctx, 'TOTAL P&L  ·  TODAY', x + 32, y + 46, 14, C.muted);
   const val = st.trades ? signedMoney(st.totalPnl, true) : '₹0';
   const pct = st.trades && st.capital > 0 ? signedPct(st.totalPct) : '0.00%';
@@ -538,7 +541,7 @@ function drawHero(ctx, st){
   const vw = ctx.measureText(val).width;
   ctx.fillStyle = col; ctx.fillText(val, x + 30, y + 118);
   const cy = y + 118 - vs * 0.36;
-  rr(ctx, x + 30 + vw + 18, cy - 19, cw, 38, 19); ctx.fillStyle = col === C.text ? 'rgba(203,213,228,0.12)' : rgba(col, 0.18); ctx.fill();
+  rr(ctx, x + 30 + vw + 18, cy - 19, cw, 38, 19); ctx.fillStyle = col === C.text ? 'rgba(15,27,45,0.06)' : rgba(col, 0.12); ctx.fill();
   ctx.fillStyle = col; ctx.font = F(800, 22); ctx.fillText(pct, x + 30 + vw + 33, cy + 8);
   sparkline(ctx, st, x + 32, y + 136, w - 64, 34, col === C.text ? C.blueLt : col);
   // capital deployed, best and worst trade
@@ -649,7 +652,7 @@ function drawTable(ctx, st, L){
 
 function check(ctx, x, y, s){
   ctx.save(); ctx.translate(x, y); ctx.scale(s / 24, s / 24);
-  ctx.beginPath(); ctx.arc(12, 12, 11, 0, Math.PI * 2); ctx.fillStyle = 'rgba(47,107,255,0.22)'; ctx.fill();
+  ctx.beginPath(); ctx.arc(12, 12, 11, 0, Math.PI * 2); ctx.fillStyle = 'rgba(47,107,255,0.12)'; ctx.fill();
   ctx.strokeStyle = C.blueLt; ctx.lineWidth = 2.6; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
   ctx.beginPath(); ctx.moveTo(7, 12.5); ctx.lineTo(10.5, 16); ctx.lineTo(17, 8.5); ctx.stroke();
   ctx.restore();
@@ -659,7 +662,7 @@ function drawList(ctx, items, area, o){
   let m = null;
   for (let s = o.max; s >= o.min; s--) {
     ctx.font = F(o.weight, s);
-    const indent = o.marker === 'check' ? s * 1.6 : s * 1.0, lh = s * 1.42, gap = s * 0.42;
+    const indent = o.marker === 'check' ? s * 1.6 : s * 1.0, lh = s * (o.tight ? 1.3 : 1.42), gap = s * (o.tight ? 0.12 : 0.42);
     const blocks = items.map(t => wrap(ctx, t, area.w - indent));
     const total = blocks.reduce((a, b) => a + b.length * lh, 0) + gap * Math.max(0, blocks.length - 1);
     m = {s, indent, lh, gap, blocks, total};
@@ -685,18 +688,24 @@ function sectionHead(ctx, x, y, text, icon){
   label(ctx, text, x + 30, y, 13.5, C.blueLt);
 }
 function drawNotes(ctx, st, L){
-  const x = 64, y = L.B, w = 467, h = L.notesH;
+  const x = 64, y = L.B, w = DW - 128, h = L.notesH;
   panel(ctx, x, y, w, h, 20, C.panel1, C.panel2);
   sectionHead(ctx, x + 28, y + 44, "TODAY'S NOTES", 'square');
   hairline(ctx, x + 28, x + w - 28, y + 66);
-  return drawList(ctx, st.notes, {x: x + 28, y: y + 88, w: w - 56, h: h - 88 - 22}, {weight: 600, max: 22, min: 15, marker: 'dot'});
+  return drawList(ctx, st.notes, {x: x + 28, y: y + 88, w: w - 56, h: h - 88 - 22}, {weight: 600, max: 23, min: 15, marker: 'dot'});
 }
+// Fixed strip: "Powered by Human + AI" on the left, the three lines on the right.
 function drawPowered(ctx, st, L){
-  const x = 555, y = L.B, w = DW - 64 - 555, h = L.notesH;
-  panel(ctx, x, y, w, h, 20, C.panel1, C.panel2);
-  sectionHead(ctx, x + 28, y + 44, 'POWERED BY HUMAN + AI', 'spark');
-  hairline(ctx, x + 28, x + w - 28, y + 66);
-  return drawList(ctx, st.powered, {x: x + 28, y: y + 88, w: w - 56, h: h - 88 - 22}, {weight: 600, max: 21, min: 15, marker: 'check'});
+  const x = 64, y = L.P, w = DW - 128, h = L.PH;
+  panel(ctx, x, y, w, h, 20, 'rgba(47,107,255,0.07)', 'rgba(47,107,255,0.03)', 'rgba(47,107,255,0.22)');
+  ctx.save(); ctx.translate(x + 40, y + h / 2); ctx.fillStyle = C.blue; ctx.beginPath();
+  ctx.moveTo(0, -17); ctx.quadraticCurveTo(2.6, -2.6, 17, 0); ctx.quadraticCurveTo(2.6, 2.6, 0, 17); ctx.quadraticCurveTo(-2.6, 2.6, -17, 0); ctx.quadraticCurveTo(-2.6, -2.6, 0, -17); ctx.fill(); ctx.restore();
+  ctx.font = F(600, 16); ctx.fillStyle = C.muted; ctx.fillText('Powered by', x + 72, y + h / 2 - 8);
+  ctx.font = F(800, 27); ctx.fillStyle = C.text; ctx.fillText('Human + ', x + 72, y + h / 2 + 24);
+  const hw = ctx.measureText('Human + ').width; ctx.fillStyle = C.blue; ctx.fillText('AI', x + 72 + hw, y + h / 2 + 24);
+  const dx = x + 300;
+  ctx.fillStyle = 'rgba(47,107,255,0.22)'; ctx.fillRect(dx, y + 20, 1.2, h - 40);
+  return drawList(ctx, st.powered, {x: dx + 28, y: y + 18, w: x + w - dx - 52, h: h - 30}, {weight: 600, max: 18, min: 13, marker: 'check', tight: true});
 }
 function drawFooter(ctx, L){
   hairline(ctx, 64, DW - 64, L.FOOT);

@@ -23,7 +23,7 @@ There is no build step and there are no dependencies. The font (Manrope) loads f
 
 ## Brand
 
-- Colours: ink `#0F1B2D` (card background runs `#14243D` to `#091322`), electric blue `#2F6BFF`, light blue `#7AA0FF` for the x and labels on dark, green `#2FD27D` for gains, red `#FF6B6B` for losses.
+- Colours: the card is white (fading to `#F6F8FC`) with ink `#0F1B2D` text, electric blue `#2F6BFF` accents, green `#119A4B` for gains and red `#E03131` for losses. Use the on-dark logo with light blue `#7AA0FF` for the x on dark backgrounds.
 - Type: Manrope ExtraBold for the wordmark and numbers, SemiBold for text.
 - Logo: a blue rounded tile with one price swing (up, a pullback, up again) ending in a live dot, then the lowercase wordmark `swingx` with a light-blue x. The logo files in `brand/` have their lettering converted to outlines.
 
@@ -35,6 +35,7 @@ There is no build step and there are no dependencies. The font (Manrope) loads f
 - Win rate counts trades with P&L above zero. Average return per trade is the mean of the trades' P&L %.
 - Only trades with entry, exit and qty filled in go on the card.
 - Each journal keeps its own trades, notes, subtitle and capital setting. "New day" clears both journals' trades and notes.
+- The "Powered by Human + AI" strip prints the same three lines on every card (set once in the editor).
 - Entries are saved in the visitor's own browser (localStorage). Nothing is sent to a server.
 - Downloads: computers get a PNG download; phones get the share sheet (Save Image), or a download if sharing isn't available.
 
